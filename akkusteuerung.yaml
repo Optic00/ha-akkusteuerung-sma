@@ -1,0 +1,469 @@
+alias: Akku Lade- Entladesteuerung (inkl. Tibber)
+description: ""
+trigger:
+  - platform: state
+    entity_id:
+      - sensor.tibber_price_level
+    to: VERY_CHEAP
+    id: sehr günstig
+  - platform: state
+    entity_id:
+      - sensor.tibber_price_level
+    to: CHEAP
+    id: günstig
+  - platform: state
+    entity_id:
+      - sensor.tibber_price_level
+    to: NORMAL
+    id: normal
+  - platform: state
+    entity_id:
+      - sensor.tibber_price_level
+    to: EXPENSIVE
+    id: teuer
+  - platform: state
+    entity_id:
+      - sensor.tibber_price_level
+    to: VERY_EXPENSIVE
+    id: sehr teuer
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3015673521_battery_soc_total
+    above: 99
+    id: Speicher ist voll
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3015673521_battery_soc_total
+    above: 49
+    id: Speicher ist über 50%
+  - platform: state
+    entity_id:
+      - input_boolean.byd_opti_automatik
+    id: BYD Opti-Automatik AN/AUS
+  - platform: numeric_state
+    entity_id:
+      - sensor.mindestentladepreis
+    below: sensor.electricity_price_jahnstrasse_34
+    id: Entladeschwelle
+  - platform: state
+    entity_id:
+      - sensor.evcc_load_point_1_charge_current
+    to: "16"
+    id: Load_Point_1_Lädt_A16
+  - platform: state
+    entity_id:
+      - sensor.evcc_load_point_1_charge_current
+    to: "0"
+    id: Load_Point_1_Lädt_Nicht_A0
+  - platform: numeric_state
+    entity_id:
+      - sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+    above: 2560
+    id: Akku Überschuss über 0.2C
+  - platform: numeric_state
+    entity_id:
+      - sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+    below: 2560
+    id: Akku Überschuss unter 0.2C
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3015673521_metering_power_absorbed
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+    below: 2560
+    id: Netzbezug
+    above: 100
+  - platform: numeric_state
+    entity_id:
+      - sensor.energy_production_today_remaining
+    below: 35
+    id: restliche Verbleibende PV unter 35kWh heute
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3015673521_battery_power_charge_total
+    above: 3000
+    id: Akku Charge-Power über 3000
+  - platform: state
+    entity_id:
+      - sensor.sn_3015673521_battery_soc_total
+    id: BYD Änderung
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - Speicher ist voll
+          - condition: state
+            entity_id: input_boolean.tibber_speicher_laden
+            state: "on"
+            enabled: true
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.speicher_eco_netzladen
+            data: {}
+          - service: input_boolean.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: input_boolean.tibber_speicher_laden
+          - type: turn_off
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: ef809451bfd86966a7e9363a2851a2ee
+            domain: switch
+          - service: input_number.set_value
+            data:
+              value: >-
+                {{ states('sensor.electricity_price_jahnstrasse_34')| float(0)
+                }}
+            target:
+              entity_id: input_number.ladepreis
+            alias: Ladepreis Helfer nach aktuellem Strompreis
+          - type: turn_on
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: 31329310a0f6c7ba9e86db347edc6cbd
+            domain: switch
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Pause
+            target:
+              entity_id: input_select.byd_akkusteuerung
+      - conditions:
+          - condition: trigger
+            id:
+              - sehr günstig
+              - günstig
+              - normal
+          - condition: numeric_state
+            entity_id: sensor.sn_3015673521_battery_soc_total
+            below: 50
+          - condition: numeric_state
+            entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+            below: 10
+          - condition: numeric_state
+            entity_id: sensor.tibber_preisspanne_heute
+            above: 8
+          - condition: numeric_state
+            entity_id: sensor.tibber_aktueller_preis_ist_tageshochstpreis
+            below: 20
+          - condition: state
+            entity_id: input_boolean.byd_akku_nach_preis_laden
+            state: "on"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.speicher_eco_netzladen
+            data: {}
+          - service: input_boolean.turn_on
+            target:
+              entity_id:
+                - input_boolean.tibber_speicher_laden
+            data: {}
+          - service: input_boolean.turn_on
+            target:
+              entity_id:
+                - input_boolean.tibber_speicher_laden
+                - input_boolean.tibber_speicher_wurde_netzgeladen
+            data: {}
+          - type: turn_on
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: ef809451bfd86966a7e9363a2851a2ee
+            domain: switch
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku schnell Laden
+            target:
+              entity_id: input_select.byd_akkusteuerung
+        alias: Akku tatsächlich Laden wenn es sich lohnt und aktiviert
+      - conditions:
+          - condition: trigger
+            id:
+              - Entladeschwelle
+        sequence:
+          - type: turn_off
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: 31329310a0f6c7ba9e86db347edc6cbd
+            domain: switch
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
+            alias: BYD Akku Automatisch
+      - conditions:
+          - condition: trigger
+            id:
+              - teuer
+              - sehr teuer
+              - normal
+          - condition: or
+            conditions:
+              - condition: numeric_state
+                entity_id: sensor.solcast_pv_forecast_prognose_morgen
+                above: 25
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                above: 25
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.speicher_eco_netzladen
+            data: {}
+          - type: turn_off
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: ef809451bfd86966a7e9363a2851a2ee
+            domain: switch
+          - service: input_number.set_value
+            data:
+              value: >-
+                {{ states('sensor.electricity_price_jahnstrasse_34')| float(0)
+                }}
+            target:
+              entity_id: input_number.ladepreis
+            alias: Ladepreis Helfer nach aktuellem Strompreis
+          - type: turn_off
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: 31329310a0f6c7ba9e86db347edc6cbd
+            domain: switch
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
+      - conditions:
+          - condition: trigger
+            id:
+              - Load_Point_1_Lädt_A16
+        sequence:
+          - type: turn_on
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: 0446bcf21f579ca3830c20b84d6bc22a
+            domain: switch
+      - conditions:
+          - condition: trigger
+            id:
+              - Load_Point_1_Lädt_Nicht_A0
+        sequence:
+          - type: turn_off
+            device_id: 9d948a903bd8d3621f4f9fcbcfecc59b
+            entity_id: 0446bcf21f579ca3830c20b84d6bc22a
+            domain: switch
+      - conditions:
+          - condition: trigger
+            id:
+              - sehr günstig
+              - günstig
+          - condition: numeric_state
+            entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+            above: 25
+          - condition: numeric_state
+            entity_id: sensor.sn_XXX_battery_soc_total
+            above: 60
+          - condition: sun
+            before: sunrise
+            after: sunset
+        sequence:
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
+          - service: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.tibber_speicher_laden
+                - input_boolean.tibber_speicher_wurde_netzgeladen
+            data: {}
+        alias: Wenn der Tag gut bleibt Akku Automatisch und Ladung freigeben
+      - conditions:
+          - condition: trigger
+            id:
+              - sehr günstig
+              - günstig
+          - condition: numeric_state
+            entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+            below: 20
+          - condition: numeric_state
+            entity_id: sensor.sn_XXXXXXX_battery_soc_total
+            below: 60
+          - condition: sun
+            before: sunrise
+            after: sunset
+        sequence:
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Pause
+            target:
+              entity_id: input_select.byd_akkusteuerung
+        alias: Akku Pause wenn Prognose schlecht und aufsparen
+      - conditions:
+          - condition: trigger
+            id:
+              - sehr günstig
+              - günstig
+          - condition: numeric_state
+            entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+            above: 10
+          - condition: sun
+            before: sunset
+            after: sunrise
+        sequence:
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
+          - service: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.tibber_speicher_laden
+                - input_boolean.tibber_speicher_wurde_netzgeladen
+            data: {}
+      - conditions:
+          - condition: trigger
+            id:
+              - Akku Überschuss über 0.2C
+              - BYD Opti-Automatik AN/AUS
+              - Speicher ist über 50%
+              - restliche Verbleibende PV unter 35kWh heute
+              - BYD Änderung
+          - condition: state
+            entity_id: input_boolean.byd_opti_automatik
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.tibber_speicher_laden
+            state: "off"
+          - condition: sun
+            before: sunset
+            after: sunrise
+        sequence:
+          - alias: >-
+              Ab unter 35kWh Rest den Akku voll machen mit 0.2C bei SoC unter
+              90%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                below: 35
+                enabled: true
+              - condition: numeric_state
+                entity_id: sensor.sn_3015673521_battery_soc_total
+                above: 0
+                below: 90
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 2600
+            then:
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku 0.2C Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Ab unter 35kWh Rest den Akku voll machen mit 1kW bei SoC über 90%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                below: 35
+                enabled: true
+              - condition: numeric_state
+                entity_id: sensor.sn_3015673521_battery_soc_total
+                above: 89
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 1100
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                data:
+                  value: 1000
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku schnell Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Bei über 35kWh Rest den Akku mit 500W Laden
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                enabled: true
+                above: 35
+              - condition: numeric_state
+                entity_id: sensor.sn_3015673521_battery_soc_total
+                above: 49
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                data:
+                  value: 500
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku schnell Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Ab über 35kWh Rest den Akku voll machen mit 0.2C bei SoC unter 50%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                enabled: true
+                above: 35
+              - condition: numeric_state
+                entity_id: sensor.sn_XXXXX_battery_soc_total
+                above: 0
+                below: 50
+              - condition: sun
+                before: sunset
+                after: sunrise
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 2500
+            then:
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku 0.2C Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+      - conditions:
+          - condition: trigger
+            id:
+              - Akku Überschuss unter 0.2C
+              - Netzbezug
+              - BYD Änderung
+          - condition: state
+            entity_id: input_boolean.tibber_speicher_laden
+            state: "off"
+        sequence:
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
+mode: single
