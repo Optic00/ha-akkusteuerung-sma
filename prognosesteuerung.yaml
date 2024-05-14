@@ -86,13 +86,17 @@ trigger:
   - platform: numeric_state
     entity_id:
       - sensor.energy_production_today_remaining
-    below: 35
+    below: 28
     id: restliche Verbleibende PV unter 35kWh heute
   - platform: numeric_state
     entity_id:
       - sensor.sn_3015673521_battery_power_charge_total
     above: 3000
     id: Akku Charge-Power über 3000
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 2
   - platform: state
     entity_id:
       - sensor.sn_3015673521_battery_soc_total
@@ -273,7 +277,7 @@ action:
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
             above: 25
           - condition: numeric_state
-            entity_id: sensor.sn_XXX_battery_soc_total
+            entity_id: sensor.sn_3015673521_battery_soc_total
             above: 60
           - condition: sun
             before: sunrise
@@ -301,7 +305,7 @@ action:
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
             below: 20
           - condition: numeric_state
-            entity_id: sensor.sn_XXXXXXX_battery_soc_total
+            entity_id: sensor.sn_3015673521_battery_soc_total
             below: 60
           - condition: sun
             before: sunrise
@@ -355,6 +359,9 @@ action:
           - condition: sun
             before: sunset
             after: sunrise
+          - condition: numeric_state
+            entity_id: sensor.sn_3015673521_battery_soc_total
+            below: 100
         sequence:
           - alias: >-
               Ab unter 35kWh Rest den Akku voll machen mit 0.2C bei SoC unter
@@ -363,7 +370,7 @@ action:
               - condition: numeric_state
                 entity_id: >-
                   sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
-                below: 35
+                below: 28
                 enabled: true
               - condition: numeric_state
                 entity_id: sensor.sn_3015673521_battery_soc_total
@@ -384,7 +391,7 @@ action:
               - condition: numeric_state
                 entity_id: >-
                   sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
-                below: 35
+                below: 28
                 enabled: true
               - condition: numeric_state
                 entity_id: sensor.sn_3015673521_battery_soc_total
@@ -410,7 +417,7 @@ action:
                 entity_id: >-
                   sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
                 enabled: true
-                above: 35
+                above: 28
               - condition: numeric_state
                 entity_id: sensor.sn_3015673521_battery_soc_total
                 above: 49
@@ -434,7 +441,7 @@ action:
                 enabled: true
                 above: 35
               - condition: numeric_state
-                entity_id: sensor.sn_XXXXX_battery_soc_total
+                entity_id: sensor.sn_3015673521_battery_soc_total
                 above: 0
                 below: 50
               - condition: sun
@@ -459,6 +466,9 @@ action:
           - condition: state
             entity_id: input_boolean.tibber_speicher_laden
             state: "off"
+          - condition: state
+            entity_id: input_boolean.byd_opti_automatik
+            state: "on"
         sequence:
           - service: input_select.select_option
             metadata: {}
