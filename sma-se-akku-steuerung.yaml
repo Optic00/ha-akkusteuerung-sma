@@ -5,6 +5,7 @@ trigger:
     entity_id:
       - input_select.byd_akkusteuerung
       - input_number.byd_akkusteuerung_ladestaerke_soll
+      - input_number.byd_akkusteuerung_entladestaerke_soll
     from: null
     to: null
     for:
@@ -73,7 +74,9 @@ action:
           slave: 3
           value:
             - 0
-            - 5000
+            - >-
+              {{ states('input_number.byd_akkusteuerung_entladestaerke_soll') |
+              int }}
       - device_id: e5b174e2bdbfcc2dc616800473090f5a
         domain: mobile_app
         type: notify
