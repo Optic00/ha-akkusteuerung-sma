@@ -1,0 +1,17 @@
+modbus:
+  - name: sma-sr_wr
+    type: tcp
+    host: 192.168.10.2
+    port: 502
+    delay: 2
+    message_wait_milliseconds: 60
+    timeout: 5
+    sensors:
+      # - platform: modbus
+      # registers:
+      - name: SMApwrL1
+        # hub: sma
+        unit_of_measurement: kW
+        slave: 3
+        address: 30777
+        data_type: uint32
