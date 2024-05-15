@@ -4,6 +4,14 @@ den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige ein
 
 Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechnet. 
 
+    - unique_id: maximaler_ueberschuss_akkuladung
+      device_class: power
+      state_class: measurement
+      name: Maximaler Ueberschuss fuer Akkuladung Watt
+      unit_of_measurement: W
+      state: "{{ (states('sensor.pv_generation_komplett_watt') | float) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_xxxxxxx_metering_power_absorbed') | float) + ((states('sensor.goecharger_wallbox_hinten_p_all')  | float )* 1000)  }}"
+
+
 dieser HA-Helfer zur Auswahl des Akku-Modus muss angelegt werden:
 
 <img width="567" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/19fdf3d8-f7ef-45d4-a5eb-36d821aeb237">
