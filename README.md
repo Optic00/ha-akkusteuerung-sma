@@ -19,3 +19,10 @@ dieser HA-Helfer zur Auswahl des Akku-Modus muss angelegt werden:
 Dann noch einen Schalter ob diese Ladeoptimerung überhaupt laufen darf anlegen:
 
 <img width="563" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/b5939bc3-6930-4772-93df-3e0b47b6b0f3">
+
+Zwei Input Numbers anlegen, Minimaler Wert 100, maximaler Wert 10000 (Watt):
+
+input_number.byd_akkusteuerung_entladestaerke_soll
+input_number.byd_akkusteuerung_ladestaerke_soll
+
+<img width="500" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/6a1ae098-817a-4029-b732-442eeee4ae6d">
