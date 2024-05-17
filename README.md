@@ -22,7 +22,7 @@ Dann noch einen Schalter ob diese Ladeoptimerung überhaupt laufen darf anlegen:
 
 Zwei Input Numbers anlegen, Minimaler Wert 100, maximaler Wert 10000 (Watt):
 
-input_number.byd_akkusteuerung_entladestaerke_soll
+input_number.byd_akkusteuerung_entladestaerke_soll und 
 input_number.byd_akkusteuerung_ladestaerke_soll
 
 <img width="500" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/6a1ae098-817a-4029-b732-442eeee4ae6d">
