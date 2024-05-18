@@ -1,5 +1,9 @@
 (work in progress, noch nicht vollständig!)
 
+ToDo:
+- Akku im Winter mindestens 1x die Woche automatisch auf 100% Laden
+- Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
+
 den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. Der eine Sensor ist ein Dummy-Eintrag den die HA Modbus Integration scheinbar seit einem der letzten Updates benötigt.
 
 Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechnet. 
