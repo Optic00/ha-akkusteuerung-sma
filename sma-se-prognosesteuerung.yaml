@@ -75,7 +75,7 @@ trigger:
     id: Akku Überschuss unter 0.2C
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3015673521_metering_power_absorbed
+      - sensor.sn_xxxx_metering_power_absorbed
     for:
       hours: 0
       minutes: 0
@@ -90,7 +90,7 @@ trigger:
     id: restliche Verbleibende PV unter 35kWh heute
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3015673521_battery_power_charge_total
+      - sensor.sn_xxxx_battery_power_charge_total
     above: 3000
     id: Akku Charge-Power über 3000
     for:
@@ -305,7 +305,7 @@ action:
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
             below: 20
           - condition: numeric_state
-            entity_id: sensor.sn_3015673521_battery_soc_total
+            entity_id: sensor.sn_xxx_battery_soc_total
             below: 60
           - condition: sun
             before: sunrise
@@ -373,7 +373,7 @@ action:
                 below: 28
                 enabled: true
               - condition: numeric_state
-                entity_id: sensor.sn_3015673521_battery_soc_total
+                entity_id: sensor.sn_xxxx_battery_soc_total
                 above: 0
                 below: 90
               - condition: numeric_state
@@ -394,7 +394,7 @@ action:
                 below: 28
                 enabled: true
               - condition: numeric_state
-                entity_id: sensor.sn_3015673521_battery_soc_total
+                entity_id: sensor.sn_xxxx_battery_soc_total
                 above: 89
               - condition: numeric_state
                 entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
@@ -441,7 +441,7 @@ action:
                 enabled: true
                 above: 35
               - condition: numeric_state
-                entity_id: sensor.sn_3015673521_battery_soc_total
+                entity_id: sensor.sn_xxxx_battery_soc_total
                 above: 0
                 below: 50
               - condition: sun
