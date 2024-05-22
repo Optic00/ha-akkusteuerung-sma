@@ -7,6 +7,7 @@ ToDo:
 - Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
 - Angabe der Akkukapazität zur Berechnung von 0.2C oder manuelle Eingabe von 0.2C
 - SBS Version
+- HACS Version für die reine Akkusteuerung
 - English Version of this?
 
 Den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. Der eine Sensor ist ein Dummy-Eintrag den die HA Modbus Integration scheinbar seit einem der letzten Updates benötigt.
