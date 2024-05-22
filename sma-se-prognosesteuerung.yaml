@@ -28,12 +28,12 @@ trigger:
     id: sehr teuer
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3015673521_battery_soc_total
+      - sensor.sn_XXX5673521_battery_soc_total
     above: 99
     id: Speicher ist voll
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3015673521_battery_soc_total
+      - sensor.sn_XXX5673521_battery_soc_total
     above: 49
     id: Speicher ist über 50%
   - platform: state
@@ -99,7 +99,7 @@ trigger:
       seconds: 2
   - platform: state
     entity_id:
-      - sensor.sn_3015673521_battery_soc_total
+      - sensor.sn_XXX5673521_battery_soc_total
     id: BYD Änderung
 condition: []
 action:
@@ -151,7 +151,7 @@ action:
               - günstig
               - normal
           - condition: numeric_state
-            entity_id: sensor.sn_3015673521_battery_soc_total
+            entity_id: sensor.sn_XXX5673521_battery_soc_total
             below: 50
           - condition: numeric_state
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
@@ -277,7 +277,7 @@ action:
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
             above: 25
           - condition: numeric_state
-            entity_id: sensor.sn_3015673521_battery_soc_total
+            entity_id: sensor.sn_XXX5673521_battery_soc_total
             above: 60
           - condition: sun
             before: sunrise
@@ -360,7 +360,7 @@ action:
             before: sunset
             after: sunrise
           - condition: numeric_state
-            entity_id: sensor.sn_3015673521_battery_soc_total
+            entity_id: sensor.sn_XXX5673521_battery_soc_total
             below: 100
         sequence:
           - alias: >-
@@ -419,7 +419,7 @@ action:
                 enabled: true
                 above: 28
               - condition: numeric_state
-                entity_id: sensor.sn_3015673521_battery_soc_total
+                entity_id: sensor.sn_XXX5673521_battery_soc_total
                 above: 49
             then:
               - service: input_number.set_value
