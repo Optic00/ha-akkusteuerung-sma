@@ -43,7 +43,7 @@ trigger:
   - platform: numeric_state
     entity_id:
       - sensor.mindestentladepreis
-    below: sensor.electricity_price_jahnstrasse_34
+    below: sensor.electricity_price_meinestrasse_34
     id: Entladeschwelle
   - platform: state
     entity_id:
@@ -129,7 +129,7 @@ action:
           - service: input_number.set_value
             data:
               value: >-
-                {{ states('sensor.electricity_price_jahnstrasse_34')| float(0)
+                {{ states('sensor.electricity_price_meinestrasse_34')| float(0)
                 }}
             target:
               entity_id: input_number.ladepreis
@@ -235,7 +235,7 @@ action:
           - service: input_number.set_value
             data:
               value: >-
-                {{ states('sensor.electricity_price_jahnstrasse_34')| float(0)
+                {{ states('sensor.electricity_price_meinestrasse_34')| float(0)
                 }}
             target:
               entity_id: input_number.ladepreis
