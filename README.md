@@ -17,6 +17,8 @@ Ein Part ist die Reine Akku Lade-/Entladesteuerung die man manuell auswählen ka
 
 **sma-ggc-automation.yaml** - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs
 
+**sma-se-akku-steuerung.yaml** - Falls man den WR noch direkt ansteuern kann und die letzten Updates nicht hat kann man diese Steuer-Automatik nutzen.
+
 - [0xabcd]
 - [0xabcd]
 
