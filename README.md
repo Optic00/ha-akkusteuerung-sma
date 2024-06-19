@@ -11,6 +11,8 @@ Akkuladesteuerung über den WR selbst (wenn man die Updates früh genug deaktivi
 
 Ein Part ist die Reine Akku Lade-/Entladesteuerung die man manuell auswählen kann, der andere Part die Opti-Automatik welche die Ladestärke auf 0.2C (oder einen gewünschte Ladestärke) begrenzt, den Akku morgens erstmal auf 50% lädt und dann pausiert bis die gewünschte Restproduktionsprognose erreicht ist. Dann wird der Akku bis 90% weiter mit 0.2C beladen, danach mit 1kW bis 100%.
 
+Es sollte die SMA Integration von HA eingerichtet werde um den SoC des Akkus auslesen zu können sowie ein Solcast Account für die Prognose der PV-Erträge!
+
 **opti-automatik.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Akku mittels der weiteren Automation gezielt geladen, pausiert und zuende geladen mit 0.2C bzw. 1kW. 
 
 **sma-stp-se-ggc-shm-akku-steuerung.yaml** Dies ist die Automation um den Zustand der Lade/Entlade/Pause Steuerung anhand des DropDown Helfers zu steuern. 
