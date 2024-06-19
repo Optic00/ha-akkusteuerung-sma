@@ -2,6 +2,13 @@ DISCLAMER: Alles auf eigene Gefahr! Ich übernehme keine Verantwortung für Sch�
 
 (work in progress, noch nicht vollständig!)
 
+sma-ggc-automation.yaml - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs
+
+- [0xabcd]
+- [0xabcd]
+
+
+
 Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-steuerung.yaml" als Automation anlegen und u.g. Helfer und Überschuss Akkuladung anlegen.
 
 ToDo:
