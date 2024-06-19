@@ -4,6 +4,13 @@
 
 # Anleitung # 
 
+Was macht das hier eigentlich?
+
+Akkuladesteuerung über den SHM 2.0 (wenn das berüchtigte März 2024 Update drauf ist, womit der WR nicht direkt gesteurt werden)
+Akkuladesteuerung über den WR selbst (wenn man die Updates früh genug deaktiviert hat)
+
+Ein Part ist die Reine Akku Lade-/Entladesteuerung die man manuell auswählen kann, der andere Part die Opti-Automatik welche die Ladestärke auf 0.2C (oder einen gewünschte Ladestärke) begrenzt, den Akku morgens erstmal auf 50% lädt und dann pausiert bis die gewünschte Restproduktionsprognose erreicht ist. Dann wird der Akku bis 90% weiter mit 0.2C beladen, danach mit 1kW bis 100%.
+
 **sma-smase-shm-ggc-akkusteuerung.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Wechselrichter gesteuert um den Akku zu Laden/Pausieren usw. 
 
 **sma-ggc-automation.yaml** - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs
@@ -18,10 +25,8 @@ Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-st
 **ToDo:**
 - Akku im Winter mindestens 1x die Woche automatisch auf 100% Laden
 - Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
-- Angabe der Akkukapazität zur Berechnung von 0.2C oder manuelle Eingabe von 0.2C
 - SBS Version
 - HACS Version für die reine Akkusteuerung
-- Automation für GGC Steuerung
 - English Version of this?
 
 Den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. Der eine Sensor ist ein Dummy-Eintrag den die HA Modbus Integration scheinbar seit einem der letzten Updates benötigt.
