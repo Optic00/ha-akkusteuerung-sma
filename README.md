@@ -4,6 +4,8 @@
 
 # Anleitung # 
 
+**sma-smase-shm-ggc-akkusteuerung.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Wechselrichter gesteuert um den Akku zu Laden/Pausieren usw. 
+
 **sma-ggc-automation.yaml** - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs
 
 - [0xabcd]
