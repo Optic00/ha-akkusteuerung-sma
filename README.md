@@ -11,7 +11,9 @@ Akkuladesteuerung über den WR selbst (wenn man die Updates früh genug deaktivi
 
 Ein Part ist die Reine Akku Lade-/Entladesteuerung die man manuell auswählen kann, der andere Part die Opti-Automatik welche die Ladestärke auf 0.2C (oder einen gewünschte Ladestärke) begrenzt, den Akku morgens erstmal auf 50% lädt und dann pausiert bis die gewünschte Restproduktionsprognose erreicht ist. Dann wird der Akku bis 90% weiter mit 0.2C beladen, danach mit 1kW bis 100%.
 
-**sma-smase-shm-ggc-akkusteuerung.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Wechselrichter gesteuert um den Akku zu Laden/Pausieren usw. 
+**sma-stp-se-ggc-shm-akku-steuerung.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Akku mittels der weiteren Automation gezielt geladen, pausiert und zuende geladen mit 0.2C bzw. 1kW. 
+
+
 
 **sma-ggc-automation.yaml** - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs
 
