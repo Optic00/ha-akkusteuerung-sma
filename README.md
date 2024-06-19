@@ -9,11 +9,11 @@
 - [0xabcd]
 - [0xabcd]
 
-** configuration.yaml ** - Eintrag zum Wechselrichter ODER falls man durch das Update März 2024 einen GGC braucht den Part für den SHM 2.0. Beides zusammen ist nicht notwendig
+**configuration.yaml** - Eintrag zum Wechselrichter ODER falls man durch das Update März 2024 einen GGC braucht den Part für den SHM 2.0. Beides zusammen ist nicht notwendig
 
 Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-steuerung.yaml" als Automation anlegen und u.g. Helfer und Überschuss Akkuladung anlegen.
 
-** ToDo: **
+**ToDo:**
 - Akku im Winter mindestens 1x die Woche automatisch auf 100% Laden
 - Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
 - Angabe der Akkukapazität zur Berechnung von 0.2C oder manuelle Eingabe von 0.2C
