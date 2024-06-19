@@ -6,6 +6,7 @@ trigger:
       - input_select.byd_akkusteuerung
       - input_number.byd_akkusteuerung_ladestaerke_soll
       - input_number.byd_akkusteuerung_entladestaerke_soll
+      - input_number.byd_akkusteuerung_02c_ladestaerke
     from: null
     to: null
     for:
@@ -27,7 +28,7 @@ action:
     then:
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
@@ -40,7 +41,7 @@ action:
           milliseconds: 0
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40149
           slave: 3
           value:
@@ -56,7 +57,7 @@ action:
     then:
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
@@ -69,7 +70,7 @@ action:
           milliseconds: 0
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40149
           slave: 3
           value:
@@ -85,7 +86,7 @@ action:
     then:
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
@@ -98,12 +99,12 @@ action:
           milliseconds: 0
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40149
           slave: 3
           value:
-            - 0
-            - 0
+            - 65535
+            - 65534
   - alias: Wenn BYD Automatik  ...
     if:
       - condition: state
@@ -112,7 +113,7 @@ action:
     then:
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
@@ -126,7 +127,7 @@ action:
     then:
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
@@ -139,10 +140,12 @@ action:
           milliseconds: 0
       - service: modbus.write_register
         data:
-          hub: sma-hm
+          hub: sma-sr_wr
           address: 40149
           slave: 3
           value:
             - 65535
-            - 62975
+            - >-
+              {{ 65535 -
+              states('input_number.byd_akkusteuerung_02c_ladestaerke') | int }}
 mode: single
