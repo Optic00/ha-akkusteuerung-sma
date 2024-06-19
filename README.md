@@ -7,7 +7,7 @@ sma-ggc-automation.yaml - Braucht man um den GGC an den SHM zu schicken. Werte m
 - [0xabcd]
 - [0xabcd]
 
-
+configuration.yaml - Eintrag zum Wechselrichter ODER falls man durch das Update März 2024 einen GGC braucht den Part für den SHM 2.0. Beides zusammen ist nicht notwendig
 
 Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-steuerung.yaml" als Automation anlegen und u.g. Helfer und Überschuss Akkuladung anlegen.
 
