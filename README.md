@@ -24,7 +24,9 @@ Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-st
 
 Den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. Der eine Sensor ist ein Dummy-Eintrag den die HA Modbus Integration scheinbar seit einem der letzten Updates benötigt.
 
-Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechnet. 
+Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechnet und einen für den aktuellen Hausverbrauch. 
+
+**Zum Beispiel für den möglichen Akku-Ladeüberschuss:**
 
     - unique_id: maximaler_ueberschuss_akkuladung
       device_class: power
@@ -32,6 +34,27 @@ Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechne
       name: Maximaler Ueberschuss fuer Akkuladung Watt
       unit_of_measurement: W
       state: "{{ (states('sensor.pv_generation_komplett_watt') | float) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_xxxxxxx_metering_power_absorbed') | float) + ((states('sensor.goecharger_wallbox_hinten_p_all')  | float )* 1000)  }}"
+
+**Zum Beispiel für den Hausverbrauch:**
+
+    - unique_id: home_energy_usage_w
+      device_class: power
+      state_class: measurement
+      name: Home Energy Usage Watt
+      unit_of_measurement: W
+      state: "{{ (states('sensor.sn_3017XXXXXX_metering_power_absorbed') | float) + (states('sensor.sn_3017XXXXXX_grid_power') | float) - (states('sensor.sn_3017XXXXXX_metering_power_supplied') | float)}}"
+
+**Hier als Extra zwei Sensoren die Wirkungsgrad und Akku_Zyklen in HA trackien**
+
+    - unique_id: byd_akku_wirkungsgrad_lade_entlade
+      name: BYD Akku Wirkungsgrad Ladung und Entladung
+      unit_of_measurement: factor
+      state: "{{ ((states('sensor.sn_3017XXXXXX_battery_discharge_total') | float) / (states('sensor.sn_3017XXXXXX_battery_charge_total') | float) * 100) | round(2) }}"
+
+    - unique_id: byd_akku_zyklen
+      name: BYD Akku Zyklen
+      unit_of_measurement: factor
+      state: "{{ (((((states('sensor.sn_3017XXXXXX_battery_discharge_total') | float) + (states('sensor.sn_3017XXXXXX_battery_charge_total') | float)) / 100 ) * (states('sensor.sn_3017XXXXXX_battery_capacity_total')) | float) / (2*10.2) ) | round(1) }}"
 
 
 dieser HA-Helfer zur Auswahl des Akku-Modus muss angelegt werden:
