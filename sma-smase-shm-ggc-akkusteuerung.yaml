@@ -1,148 +1,202 @@
-alias: BYD Akkusteuerung
+alias: Akku Lade- Entladesteuerung
 description: ""
 trigger:
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3017XXXXXX_battery_soc_total
+    above: 99
+    id: Speicher ist voll
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3017XXXXXX_battery_soc_total
+    above: 49
+    id: Speicher ist über 50%
   - platform: state
     entity_id:
-      - input_select.byd_akkusteuerung
-      - input_number.byd_akkusteuerung_ladestaerke_soll
-      - input_number.byd_akkusteuerung_entladestaerke_soll
-    from: null
-    to: null
+      - input_boolean.byd_opti_automatik
+    id: BYD Opti-Automatik AN/AUS
+  - platform: numeric_state
+    entity_id:
+      - sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+    for:
+      hours: 0
+      minutes: 2
+      seconds: 0
+    above: input_number.byd_akkusteuerung_02c_ladestaerke
+    id: Akku Überschuss über 0.2C
+  - platform: numeric_state
+    entity_id:
+      - sensor.maximaler_ueberschuss_fuer_akkuladung_watt
     for:
       hours: 0
       minutes: 0
-      seconds: 1
-  - platform: time_pattern
-    minutes: /30
-    enabled: true
-  - platform: homeassistant
-    event: start
+      seconds: 10
+    below: input_number.byd_akkusteuerung_02c_ladestaerke
+    id: Akku Überschuss unter 0.2C
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3017XXXXXX_metering_power_absorbed
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+    below: input_number.byd_akkusteuerung_02c_ladestaerke
+    id: Netzbezug
+    above: 100
+  - platform: numeric_state
+    entity_id:
+      - sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+    below: input_number.byd_akku_ab_welchem_restertrag_vollladen
+    id: restliche Verbleibende PV unter Resterzeugung Solcast heute
+  - platform: numeric_state
+    entity_id:
+      - sensor.sn_3017XXXXXX_battery_power_charge_total
+    above: input_number.byd_akkusteuerung_02c_ladestaerke
+    id: Akku Charge-Power über 3000
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 15
+  - platform: state
+    entity_id:
+      - sensor.sn_3017XXXXXX_battery_soc_total
+    id: BYD Änderung
+  - platform: state
+    entity_id:
+      - input_number.byd_akkusteuerung_02c_ladestaerke
+      - input_number.byd_akku_ab_welchem_restertrag_vollladen
+    id: Regelwerte
 condition: []
 action:
-  - alias: Wenn BYD Akku schnell Laden ...
-    if:
-      - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku schnell Laden
-    then:
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40151
-          slave: 2
-          value:
-            - 0
-            - 802
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 5
-          milliseconds: 0
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40149
-          slave: 2
-          value:
-            - 65535
-            - >-
-              {{ 65535 -
-              states('input_number.byd_akkusteuerung_ladestaerke_soll') | int }}
-  - alias: Wenn BYD Akku schnell Entaden ...
-    if:
-      - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku schnell Entladen
-    then:
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40151
-          slave: 2
-          value:
-            - 0
-            - 802
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 5
-          milliseconds: 0
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40149
-          slave: 2
-          value:
-            - 0
-            - >-
-              {{ states('input_number.byd_akkusteuerung_entladestaerke_soll') |
-              int }}
-  - alias: Wenn BYD Akku Pause ...
-    if:
-      - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku Pause
-    then:
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40151
-          slave: 2
-          value:
-            - 0
-            - 802
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 5
-          milliseconds: 0
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40149
-          slave: 2
-          value:
-            - 65535
-            - 65534
-  - alias: Wenn BYD Automatik  ...
-    if:
-      - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku Automatisch
-    then:
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40151
-          slave: 2
-          value:
-            - 0
-            - 803
-  - alias: Wenn BYD Akku 0.2C Laden
-    if:
-      - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku 0.2C Laden
-    then:
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40151
-          slave: 2
-          value:
-            - 0
-            - 802
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 5
-          milliseconds: 0
-      - service: modbus.write_register
-        data:
-          hub: sma-hm
-          address: 40149
-          slave: 2
-          value:
-            - 65535
-            - 63500
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - Akku Überschuss über 0.2C
+              - BYD Opti-Automatik AN/AUS
+              - Speicher ist über 50%
+              - BYD Änderung
+              - restliche Verbleibende PV unter Resterzeugung Solcast heute
+              - Regelwerte
+          - condition: state
+            entity_id: input_boolean.byd_opti_automatik
+            state: "on"
+          - condition: sun
+            before: sunset
+            after: sunrise
+          - condition: numeric_state
+            entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+            below: 100
+        sequence:
+          - alias: >-
+              Ab unter 35kWh Rest den Akku voll machen mit 0.2C bei SoC unter
+              90%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                below: input_number.byd_akku_ab_welchem_restertrag_vollladen
+                enabled: true
+              - condition: numeric_state
+                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                above: 0
+                below: 90
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 2600
+            then:
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku 0.2C Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Bei über 35kWh Rest den Akku Pausieren
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                enabled: true
+                above: input_number.byd_akku_ab_welchem_restertrag_vollladen
+              - condition: numeric_state
+                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                above: 49
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                data:
+                  value: 500
+                enabled: false
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku Pause
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Ab unter 35kWh Rest den Akku voll machen mit 1kW bei SoC über 90%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                below: input_number.byd_akku_ab_welchem_restertrag_vollladen
+                enabled: true
+              - condition: numeric_state
+                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                above: 89
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 1100
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                data:
+                  value: 1000
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku schnell Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+          - alias: Ab über 35kWh Rest den Akku voll machen mit 0.2C bei SoC unter 50%
+            if:
+              - condition: numeric_state
+                entity_id: >-
+                  sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
+                enabled: true
+                above: 35
+              - condition: numeric_state
+                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                above: 0
+                below: 50
+              - condition: sun
+                before: sunset
+                after: sunrise
+              - condition: numeric_state
+                entity_id: sensor.maximaler_ueberschuss_fuer_akkuladung_watt
+                above: 2500
+            then:
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: BYD Akku 0.2C Laden
+                target:
+                  entity_id: input_select.byd_akkusteuerung
+      - conditions:
+          - condition: trigger
+            id:
+              - Akku Überschuss unter 0.2C
+              - Netzbezug
+              - BYD Änderung
+          - condition: state
+            entity_id: input_boolean.byd_opti_automatik
+            state: "on"
+        sequence:
+          - service: input_select.select_option
+            metadata: {}
+            data:
+              option: BYD Akku Automatisch
+            target:
+              entity_id: input_select.byd_akkusteuerung
 mode: single
