@@ -1,3 +1,5 @@
+# Prognosebasierte SMA Hybrid-Wechselrichter Steuerung für Homeassistant und manuelle Steuerung #
+
 **DISCLAMER: Alles auf eigene Gefahr! Ich übernehme keine Verantwortung für Schäden oder Probleme die hiermit entstehen.**
 Dieses Projekt wird in keinster Weise von der Firma SMA begleitet oder supported.
 
