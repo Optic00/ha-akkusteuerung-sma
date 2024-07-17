@@ -1,4 +1,4 @@
-# Prognosebasierte SMA Hybrid-Wechselrichter Steuerung für Homeassistant und manuelle Steuerung #
+# Prognosebasierte & Manuelle Steuerung für Homeassistant von SMA STP SE Hybrid-Wechselrichter #
 
 **DISCLAMER: Alles auf eigene Gefahr! Ich übernehme keine Verantwortung für Schäden oder Probleme die hiermit entstehen.**
 Dieses Projekt wird in keinster Weise von der Firma SMA begleitet oder supported.
