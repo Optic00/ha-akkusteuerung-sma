@@ -35,6 +35,7 @@ Es sollte die SMA Integration von HA eingerichtet werde um den SoC des Akkus aus
 Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-steuerung.yaml" als Automation anlegen und u.g. Helfer und Überschuss Akkuladung anlegen.
 
 **ToDo:**
+- Peak Shaving bzw. Abgreifen vom Erzeugungsüberschuss über 70% Regelung
 - Akku im Winter mindestens 1x die Woche automatisch auf 100% Laden
 - Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
 - SBS Version
