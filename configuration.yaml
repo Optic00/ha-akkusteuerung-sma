@@ -9,9 +9,11 @@ modbus:
     sensors:
       # - platform: modbus
       # registers:
-      - name: SMApwrL1
-        # hub: sma
-        unit_of_measurement: kW
-        slave: 3
-        address: 30777
+      - name: SMA-STP-SE_Temperatur
         data_type: uint32
+        device_class: "temperature"
+        unit_of_measurement: "°C"
+        slave: 3
+        address: 30953
+        #count: 2
+        scale: 0.1
