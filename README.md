@@ -6,6 +6,8 @@ Dieses Projekt wird in keinster Weise von der Firma SMA begleitet oder supported
 **Neue Betafirma seit 16.07.2024 stellt wieder die alte Funktionalität her, dass der Wechselrichter direkt über Modbus gesteurt werden kann**
 Grid Guard Code usw. nicht mehr notwendig!
 
+Noch kein Tibber? 50€ Bonus für mich & dich: https://invite.tibber.com/14sk9m15
+
 (work in progress, noch nicht vollständig!)
 
 # Anleitung # 
