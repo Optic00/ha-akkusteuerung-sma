@@ -57,6 +57,15 @@ Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechne
       unit_of_measurement: W
       state: "{{ (states('sensor.pv_generation_komplett_watt') | float) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_xxxxxxx_metering_power_absorbed') | float) + ((states('sensor.goecharger_wallbox_hinten_p_all')  | float )* 1000)  }}"
 
+**Zum Beispiel für den PV-Überschuss um ggf. die 70% Kappung zu erkennen**
+
+    - unique_id: akkusteuerung_ueberschuss_pv
+      device_class: power
+      state_class: measurement
+      name: Ueberschuss PV Watt
+      unit_of_measurement: W
+      state: "{{ (states('sensor.pv_generation_komplett_watt') | float(0) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_3015673521_metering_power_absorbed') | float) )  }}"
+
 **Zum Beispiel für den Hausverbrauch:**
 
     - unique_id: home_energy_usage_w
