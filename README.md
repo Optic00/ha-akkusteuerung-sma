@@ -14,7 +14,6 @@ Noch kein Tibber? 50€ Bonus für mich & dich: https://invite.tibber.com/14sk9m
 
 Was macht das hier eigentlich?
 
-~~Akkuladesteuerung über den SHM 2.0 (wenn das berüchtigte März 2024 Update drauf ist, womit der WR nicht direkt gesteurt werden)~~
 Akkuladesteuerung über den WR selbst (wenn man die Updates früh genug deaktiviert hat ODER die neue Betafirmware für den SHM 2.0 hat)
 
 Ein Part ist die Reine Akku Lade-/Entladesteuerung die man manuell auswählen kann, der andere Part die Opti-Automatik welche die Ladestärke auf 0.2C (oder einen gewünschte Ladestärke) begrenzt, den Akku morgens erstmal auf 50% lädt und dann pausiert bis die gewünschte Restproduktionsprognose erreicht ist. Dann wird der Akku bis 90% weiter mit 0.2C beladen, danach mit 1kW bis 100%.
@@ -23,28 +22,20 @@ Es sollte die SMA Integration von HA eingerichtet werde um den SoC des Akkus aus
 
 **opti-automatik.yaml** - Hiermit wird über den SHM 2.0 und freigeschaltetem GGC der Akku mittels der weiteren Automation gezielt geladen, pausiert und zuende geladen mit 0.2C bzw. 1kW. 
 
-~~**sma-stp-se-ggc-shm-akku-steuerung.yaml** Dies ist die Automation um den Zustand der Lade/Entlade/Pause Steuerung anhand des DropDown Helfers zu steuern.~~
-
-~~**sma-ggc-automation.yaml** - Braucht man um den GGC an den SHM zu schicken. Werte müssen von Decimal in Hexadecimal umgewandelt werden und dann die hex-decimal in zwei packs~~
-
 **sma-se-akku-steuerung.yaml** - Falls man den WR noch direkt ansteuern kann und die letzten Updates nicht hat / die neue Beta Firmware (siehe oben) kann man diese Steuer-Automatik nutzen.
 
-~~- [0xabcd]~~
-~~- [0xabcd]~~
-
-**configuration.yaml** - Eintrag zum Wechselrichter ODER falls man durch das Update März 2024 einen GGC braucht den Part für den SHM 2.0. Beides zusammen ist nicht notwendig
+**configuration.yaml** - Eintrag zum Wechselrichter. Den Sensor für die Temperatur bitte mitnehmen, ohne Sensor funktioniert die Modbus Integration nicht zuverlässig.
 
 Wer erstmal nur die reine Akkusteuerung möchte, braucht nur die "sma-se-akku-steuerung.yaml" als Automation anlegen und u.g. Helfer und Überschuss Akkuladung anlegen.
 
 **ToDo:**
-- Peak Shaving bzw. Abgreifen vom Erzeugungsüberschuss über 70% Regelung
 - Akku im Winter mindestens 1x die Woche automatisch auf 100% Laden
 - Evtl. Ladegeschwindigkeit ab 95-98% auf 500 Watt begrenzen
 - SBS Version
 - HACS Version für die reine Akkusteuerung
 - English Version of this?
 
-Den eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. Der eine Sensor ist ein Dummy-Eintrag den die HA Modbus Integration scheinbar seit einem der letzten Updates benötigt.
+Den Eintrag aus der configuration.yaml bei Homeassistant in die gleichnamige einfügen. 
 
 Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechnet und einen für den aktuellen Hausverbrauch. 
 
