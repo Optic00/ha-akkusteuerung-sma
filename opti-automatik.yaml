@@ -1,5 +1,5 @@
-alias: Akku Lade- Entladesteuerung (inkl. AC-Überschuss)
-description: ""
+alias: Akku Lade- Entladesteuerung Opti
+description: (inkl. Preisladung, 70% und AC-Überschuss)
 trigger:
   - platform: state
     entity_id:
@@ -14,22 +14,22 @@ trigger:
     id: Akku Opti-Automatik AN/AUS
   - platform: state
     entity_id:
-      - sensor.sn_3017XXXXXX_battery_soc_total
+      - sensor.sn_30XXXXXXXX_battery_soc_total
     id: BYD Änderung
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_battery_soc_total
+      - sensor.sn_30XXXXXXXX_battery_soc_total
     above: 99
     id: Speicher ist voll
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_battery_soc_total
+      - sensor.sn_30XXXXXXXX_battery_soc_total
     above: 49
     id: Speicher ist über 50%
   - platform: numeric_state
     entity_id:
       - sensor.mindestentladepreis
-    below: sensor.electricity_price_meinestrasse_123
+    below: sensor.electricity_price_musterstrasse_123
     id: Entladeschwelle
     enabled: true
   - platform: numeric_state
@@ -39,21 +39,12 @@ trigger:
     id: restliche Verbleibende PV unter Schwelle heute
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_pv_power
-    above: input_number.sma_hybrid_wr_ac_ueberschuss_grenze
-    id: AC-Überschuss
-    for:
-      hours: 0
-      minutes: 0
-      seconds: 30
-  - platform: numeric_state
-    entity_id:
       - sensor.maximaler_ueberschuss_fuer_akkuladung_watt
     for:
       hours: 0
       minutes: 1
       seconds: 0
-    above: input_number.byd_akkusteuerung_02c_ladestaerke
+    above: input_number.akkusteuerung_02c_ladestaerke
     id: Akku Überschuss über 0.2C
   - platform: numeric_state
     entity_id:
@@ -62,21 +53,20 @@ trigger:
       hours: 0
       minutes: 0
       seconds: 15
-    below: 2560
+    below: input_number.akkusteuerung_02c_ladestaerke
     id: Akku Überschuss unter 0.2C
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_metering_power_absorbed
+      - sensor.sn_30XXXXXXXX_metering_power_absorbed
     for:
       hours: 0
       minutes: 0
       seconds: 15
-    below: 2560
     id: Netzbezug
     above: 10
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_battery_power_charge_total
+      - sensor.sn_30XXXXXXXX_battery_power_charge_total
     above: 3000
     id: Akku Charge-Power über 3000
     for:
@@ -85,22 +75,40 @@ trigger:
       seconds: 15
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_pv_power
+      - sensor.sn_30XXXXXXXX_pv_power
     for:
       hours: 0
       minutes: 0
       seconds: 30
     id: AC-Überschuss
-    above: input_number.sma_hybrid_wr_ac_ueberschuss_grenze
+    above: input_number.akkusteuerung_wr_ac_ueberschuss_grenze
   - platform: numeric_state
     entity_id:
-      - sensor.sn_3017XXXXXX_pv_power
+      - sensor.sn_30XXXXXXXX_pv_power
     for:
       hours: 0
       minutes: 0
       seconds: 30
     id: AC-Überschuss-Aus
-    below: input_number.sma_hybrid_wr_ac_ueberschuss_grenze
+    below: input_number.akkusteuerung_wr_ac_ueberschuss_grenze
+  - platform: numeric_state
+    entity_id:
+      - sensor.ueberschuss_pv_watt
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 30
+    id: PV-70%-Überschuss
+    above: input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
+  - platform: numeric_state
+    entity_id:
+      - sensor.ueberschuss_pv_watt
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 30
+    id: PV-70%-Überschuss-Aus
+    below: input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
 condition: []
 action:
   - alias: Zwischen Speicherszenarien wählen
@@ -116,6 +124,8 @@ action:
               - AC-Überschuss
               - restliche Verbleibende PV unter Schwelle heute
               - Akku Opti-Automatik AN/AUS
+              - PV-70%-Überschuss
+              - PV-70%-Überschuss-Aus
           - condition: state
             entity_id: input_boolean.akku_opti_automatik
             state: "on"
@@ -128,41 +138,57 @@ action:
         sequence:
           - if:
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_pv_power
-                above: input_number.sma_hybrid_wr_ac_ueberschuss_grenze
+                entity_id: sensor.sn_30XXXXXXXX_pv_power
+                above: input_number.akkusteuerung_wr_ac_ueberschuss_grenze
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                 below: "100"
             then:
               - service: input_number.set_value
                 target:
-                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                  entity_id: input_number.akkusteuerung_sma_wr_ladestaerke_soll
                 data:
                   value: 100
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku schnell Laden
+                  option: Akku schnell Laden
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
             alias: Bei AC Überschuss diesen in den Akku Laden
+          - alias: Bei 70% Überschuss diesen in den Akku Laden
+            if:
+              - condition: numeric_state
+                entity_id: sensor.ueberschuss_pv_watt
+                above: input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
+              - condition: numeric_state
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
+                below: "100"
+            then:
+              - service: input_select.select_option
+                metadata: {}
+                data:
+                  option: Akku 0.2C Laden
+                target:
+                  entity_id: input_select.akkusteuerung_sma_wr
+              - stop: fertig
           - if:
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                 above: 99
             then:
               - service: input_number.set_value
                 target:
-                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                  entity_id: input_number.akkusteuerung_sma_wr_ladestaerke_soll
                 data:
                   value: 100
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku Automatisch
+                  option: Akku Automatisch
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
             alias: Bei vollem Akku im Zweifel auf Automatisch schalten
           - alias: >-
@@ -175,7 +201,7 @@ action:
                 enabled: true
                 above: input_number.akkusteuerung_ab_welchem_restertrag_vollladen
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                 above: 0
                 below: 50
               - condition: sun
@@ -188,9 +214,9 @@ action:
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku 0.2C Laden
+                  option: Akku 0.2C Laden
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
           - alias: >-
               Ab unter Restladeschwelle den Akku voll machen mit 0.2C bei SoC
@@ -202,7 +228,7 @@ action:
                 below: input_number.akkusteuerung_ab_welchem_restertrag_vollladen
                 enabled: true
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                 above: 0
                 below: 90
               - condition: numeric_state
@@ -212,9 +238,9 @@ action:
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku 0.2C Laden
+                  option: Akku 0.2C Laden
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
           - alias: >-
               Ab unter Restladeschwelle den Akku voll machen mit 1kW bei SoC
@@ -226,7 +252,7 @@ action:
                 below: input_number.akkusteuerung_ab_welchem_restertrag_vollladen
                 enabled: true
               - condition: numeric_state
-                entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                 above: 89
                 below: 100
               - condition: numeric_state
@@ -234,16 +260,16 @@ action:
                 above: 1100
             then:
               - service: input_number.set_value
-                target:
-                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
                 data:
                   value: 1000
+                target:
+                  entity_id: input_number.akkusteuerung_ladestaerke_soll
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku schnell Laden
+                  option: Akku schnell Laden
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
           - alias: >-
               Ab unter 35kWh Automatisch bei weniger als 1100W und unter 100%
@@ -261,9 +287,9 @@ action:
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku Automatisch
+                  option: Akku Automatisch
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
               - stop: fertig
           - alias: >-
               Bei über 35kWh Rest und Akku 50% ODER Akku auf 100% den Akku
@@ -280,7 +306,7 @@ action:
                         above: >-
                           input_number.akkusteuerung_ab_welchem_restertrag_vollladen
                       - condition: numeric_state
-                        entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                        entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                         above: 47
                   - condition: and
                     conditions:
@@ -291,21 +317,21 @@ action:
                         above: >-
                           input_number.akkusteuerung_ab_welchem_restertrag_vollladen
                       - condition: numeric_state
-                        entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                        entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                         above: 99
             then:
               - service: input_number.set_value
                 target:
-                  entity_id: input_number.byd_akkusteuerung_ladestaerke_soll
+                  entity_id: input_number.akkusteuerung_sma_wr_ladestaerke_soll
                 data:
                   value: 500
                 enabled: false
               - service: input_select.select_option
                 metadata: {}
                 data:
-                  option: BYD Akku Pause
+                  option: Akku Pause
                 target:
-                  entity_id: input_select.byd_akkusteuerung
+                  entity_id: input_select.akkusteuerung_sma_wr
       - conditions:
           - condition: trigger
             id:
@@ -323,7 +349,7 @@ action:
           - service: input_number.set_value
             data:
               value: >-
-                {{ states('sensor.electricity_price_meinestrasse_123')| float(0)
+                {{ states('sensor.electricity_price_musterstrasse_123')| float(0)
                 }}
             target:
               entity_id: input_number.ladepreis
@@ -331,9 +357,9 @@ action:
           - service: input_select.select_option
             metadata: {}
             data:
-              option: BYD Akku Pause
+              option: Akku Pause
             target:
-              entity_id: input_select.byd_akkusteuerung
+              entity_id: input_select.akkusteuerung_sma_wr
       - conditions:
           - condition: trigger
             id:
@@ -343,10 +369,10 @@ action:
           - service: input_select.select_option
             metadata: {}
             data:
-              option: BYD Akku Automatisch
+              option: Akku Automatisch
             target:
-              entity_id: input_select.byd_akkusteuerung
-            alias: BYD Akku Automatisch
+              entity_id: input_select.akkusteuerung_sma_wr
+            alias: Akku Automatisch
       - conditions:
           - condition: trigger
             id:
@@ -356,7 +382,7 @@ action:
             entity_id: sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
             below: 20
           - condition: numeric_state
-            entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+            entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
             below: 60
           - condition: sun
             before: sunrise
@@ -365,9 +391,9 @@ action:
           - service: input_select.select_option
             metadata: {}
             data:
-              option: BYD Akku Pause
+              option: Akku Pause
             target:
-              entity_id: input_select.byd_akkusteuerung
+              entity_id: input_select.akkusteuerung_sma_wr
         alias: Akku Pause wenn Prognose schlecht und aufsparen
   - alias: Zwischen Tibber Aktionen wählen
     choose:
@@ -397,7 +423,7 @@ action:
           - choose:
               - conditions:
                   - condition: numeric_state
-                    entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                    entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                     below: 50
                   - condition: numeric_state
                     entity_id: >-
@@ -426,14 +452,14 @@ action:
                     target:
                       entity_id:
                         - input_boolean.hausakku_aus_netz_laden
-                        - input_boolean.tibber_speicher_wurde_netzgeladen
+                        - input_boolean.hausakku_wurde_netzgeladen
                     data: {}
                   - service: input_select.select_option
                     metadata: {}
                     data:
-                      option: BYD Akku schnell Laden
+                      option: Akku schnell Laden
                     target:
-                      entity_id: input_select.byd_akkusteuerung
+                      entity_id: input_select.akkusteuerung_sma_wr
                 alias: Akku tatsächlich Laden wenn es sich lohnt und aktiviert
               - conditions:
                   - condition: numeric_state
@@ -441,7 +467,7 @@ action:
                       sensor.solcast_pv_forecast_prognose_verbleibende_leistung_heute
                     above: 25
                   - condition: numeric_state
-                    entity_id: sensor.sn_3017XXXXXX_battery_soc_total
+                    entity_id: sensor.sn_30XXXXXXXX_battery_soc_total
                     above: 60
                   - condition: sun
                     before: sunrise
@@ -453,14 +479,14 @@ action:
                   - service: input_select.select_option
                     metadata: {}
                     data:
-                      option: BYD Akku Automatisch
+                      option: Akku Automatisch
                     target:
-                      entity_id: input_select.byd_akkusteuerung
+                      entity_id: input_select.akkusteuerung_sma_wr
                   - service: input_boolean.turn_off
                     target:
                       entity_id:
                         - input_boolean.hausakku_aus_netz_laden
-                        - input_boolean.tibber_speicher_wurde_netzgeladen
+                        - input_boolean.hausakku_wurde_netzgeladen
                     data: {}
                 alias: >-
                   Wenn der PV-Ertrag gut wird Akku Automatisch und Ladung
@@ -477,15 +503,15 @@ action:
                   - service: input_select.select_option
                     metadata: {}
                     data:
-                      option: BYD Akku Automatisch
+                      option: Akku Automatisch
                     target:
-                      entity_id: input_select.byd_akkusteuerung
+                      entity_id: input_select.akkusteuerung_sma_wr
                     enabled: false
                   - service: input_boolean.turn_off
                     target:
                       entity_id:
                         - input_boolean.hausakku_aus_netz_laden
-                        - input_boolean.tibber_speicher_wurde_netzgeladen
+                        - input_boolean.hausakku_wurde_netzgeladen
                     data: {}
                     enabled: false
               - conditions:
@@ -506,7 +532,7 @@ action:
                   - service: input_number.set_value
                     data:
                       value: >-
-                        {{ states('sensor.electricity_price_meinestrasse_123')|
+                        {{ states('sensor.electricity_price_musterstrasse_123')|
                         float(0) }}
                     target:
                       entity_id: input_number.ladepreis
@@ -514,8 +540,8 @@ action:
                   - service: input_select.select_option
                     metadata: {}
                     data:
-                      option: BYD Akku Automatisch
+                      option: Akku Automatisch
                     target:
-                      entity_id: input_select.byd_akkusteuerung
+                      entity_id: input_select.akkusteuerung_sma_wr
     enabled: true
 mode: single
