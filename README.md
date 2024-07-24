@@ -81,18 +81,19 @@ Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechne
 
 dieser HA-Helfer zur Auswahl des Akku-Modus muss angelegt werden:
 
-<img width="567" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/19fdf3d8-f7ef-45d4-a5eb-36d821aeb237">
+<img width="322" alt="image" src="https://github.com/user-attachments/assets/be8c061f-681d-4acb-bbc4-47f3ca9a9a49">
 
 Dann noch einen Schalter **akku_opti_automatik** ob diese Ladeoptimerung überhaupt laufen darf anlegen:
 
 Vier Input Numbers anlegen, Minimaler Wert 100, maximaler Wert 10000 (Watt) für:
 
-input_number.byd_akkusteuerung_entladestaerke_soll und 
-input_number.byd_akkusteuerung_ladestaerke_soll
-input_number.byd_akkusteuerung_02c_ladestaerke
+input_number.akkusteuerung_ladestaerke_soll und 
+input_number.akkusteuerung_entladestaerke_soll
+input_number.akkusteuerung_02c_ladestaerke
+
 
 für den letzten z.B. 1-100kWh, dies steuert die Schwelle ab wann der Akku von 50% aufwärts geladen wird.
 
-input_number.byd_akku_ab_welchem_restertrag_vollladen
+input_number.akkusteuerung_ab_welchem_restertrag_vollladen
 
 <img width="500" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/6a1ae098-817a-4029-b732-442eeee4ae6d">
