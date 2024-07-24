@@ -1,12 +1,11 @@
-alias: BYD Akkusteuerung
+alias: Akkusteuerung
 description: ""
 trigger:
   - platform: state
     entity_id:
-      - input_select.byd_akkusteuerung
-      - input_number.byd_akkusteuerung_ladestaerke_soll
-      - input_number.byd_akkusteuerung_entladestaerke_soll
-      - input_number.byd_akkusteuerung_02c_ladestaerke
+      - input_select.akkusteuerung_sma_wr
+      - input_number.akkusteuerung_ladestaerke_soll
+      - input_number.akkusteuerung_entladestaerke_soll
     from: null
     to: null
     for:
@@ -20,11 +19,11 @@ trigger:
     event: start
 condition: []
 action:
-  - alias: Wenn BYD Akku schnell Laden ...
+  - alias: Wenn Akku schnell Laden ...
     if:
       - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku schnell Laden
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku schnell Laden
     then:
       - service: modbus.write_register
         data:
@@ -47,13 +46,13 @@ action:
           value:
             - 65535
             - >-
-              {{ 65535 -
-              states('input_number.byd_akkusteuerung_ladestaerke_soll') | int }}
-  - alias: Wenn BYD Akku schnell Entaden ...
+              {{ 65535 - states('input_number.akkusteuerung_ladestaerke_soll') |
+              int }}
+  - alias: Wenn Akku schnell Entaden ...
     if:
       - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku schnell Entladen
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku schnell Entladen
     then:
       - service: modbus.write_register
         data:
@@ -78,11 +77,11 @@ action:
             - >-
               {{ states('input_number.byd_akkusteuerung_entladestaerke_soll') |
               int }}
-  - alias: Wenn BYD Akku Pause ...
+  - alias: Wenn Akku Pause ...
     if:
       - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku Pause
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku Pause
     then:
       - service: modbus.write_register
         data:
@@ -103,13 +102,12 @@ action:
           address: 40149
           slave: 3
           value:
-            - 65535
-            - 65534
-  - alias: Wenn BYD Automatik  ...
-    if:
+            - 0
+            - 0
+  - if:
       - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku Automatisch
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku Automatisch
     then:
       - service: modbus.write_register
         data:
@@ -119,11 +117,12 @@ action:
           value:
             - 0
             - 803
-  - alias: Wenn BYD Akku 0.2C Laden
+    alias: Wenn Akku Automatik
+  - alias: Wenn Akku 0.2C Laden
     if:
       - condition: state
-        entity_id: input_select.byd_akkusteuerung
-        state: BYD Akku 0.2C Laden
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku 0.2C Laden
     then:
       - service: modbus.write_register
         data:
@@ -146,6 +145,6 @@ action:
           value:
             - 65535
             - >-
-              {{ 65535 -
-              states('input_number.byd_akkusteuerung_02c_ladestaerke') | int }}
+              {{ 65535 - states('input_number.akkusteuerung_02c_ladestaerke') |
+              int }}
 mode: single
