@@ -64,7 +64,7 @@ Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechne
       state_class: measurement
       name: Ueberschuss PV Watt
       unit_of_measurement: W
-      state: "{{ (states('sensor.pv_generation_komplett_watt') | float(0) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_3015673521_metering_power_absorbed') | float) )  }}"
+      state: "{{ (states('sensor.pv_generation_komplett_watt') | float(0) - (states('sensor.home_energy_usage_watt') | float) - (states('sensor.sn_3017XXXXXX_metering_power_absorbed') | float) )  }}"
 
 **Zum Beispiel für den Hausverbrauch:**
 
