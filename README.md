@@ -108,3 +108,87 @@ für den letzten z.B. 1-100kWh, dies steuert die Schwelle ab wann der Akku von 5
 So schaut es im HA aktuell aus. Hab noch einen Dummy-Schalter für den Fall das die Module/Anlage mal ausfällt. Da ist aber noch nichts aktives in der Automation enthalten.
 
 <img width="505" alt="image" src="https://github.com/user-attachments/assets/82cfe4d3-9034-4cf5-953c-65b624f5250e">
+
+    type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Akkusteuerung SMA STP-SE
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.sn_30XXXXXXXX_battery_power_discharge_total
+                above: 0.001
+            chip:
+              type: template
+              entity: sensor.sn_30XXXXXXXX_battery_power_discharge_total
+              content: '{{( states(entity) | float / 1000) | round(2) }}  kW '
+              icon: mdi:battery-minus
+              icon_color: red
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.sn_30XXXXXXXX_battery_power_charge_total
+                above: 0.001
+            chip:
+              type: entity
+              entity: sensor.sn_30XXXXXXXX_battery_power_charge_total
+              icon: mdi:battery-positive
+              icon_color: green
+          - type: entity
+            entity: sensor.sn_30XXXXXXXX_battery_soc_total
+            icon_color: blue
+          - type: template
+            entity: sensor.byd_12_8_akku_wirkungsgrad_ladung_und_entladung
+            content: '{{ states(entity) | round (1)}}% η'
+            icon: mdi:vector-difference
+            icon_color: orange
+          - type: template
+            entity: sensor.byd_12_8_akku_zyklen
+            content: '{{ states(entity)}}'
+            icon: mdi:counter
+            icon_color: yellow
+          - type: entity
+            entity: sensor.sn_30XXXXXXXX_battery_temp_a
+            icon: mdi:battery-charging-wireless-outline
+          - type: entity
+            entity: sensor.sma_stp_se_temperatur
+            icon: mdi:power-socket-it
+      - type: custom:mushroom-select-card
+        entity: input_select.akkusteuerung_sma_wr
+        name: Akkusteuerung
+        primary_info: name
+        secondary_info: last-changed
+      - type: tile
+        entity: input_boolean.akku_opti_automatik
+      - type: tile
+        entity: input_boolean.akku_nach_preis_laden
+      - type: tile
+        entity: input_boolean.pv_module_nicht_verfugbar
+        name: PV-Module NA (z.B. Schnee bedeckt)
+      - type: horizontal-stack
+        cards:
+          - type: tile
+            entity: sensor.sn_30XXXXXXXX_battery_discharge_total
+            name: Entladen Watt
+          - type: tile
+            entity: sensor.sn_30XXXXXXXX_battery_charge_total
+            name: Laden Watt
+      - type: entities
+        entities:
+          - entity: input_number.akkusteuerung_ladestaerke_soll
+          - entity: input_number.akkusteuerung_entladestaerke_soll
+            name: Entladestärke
+          - entity: input_number.akkusteuerung_ab_welchem_restertrag_vollladen
+            name: Restladeschwelle
+          - entity: input_number.akkusteuerung_02c_ladestaerke
+            name: Ladestärke 0.2C
+          - entity: input_number.akkusteuerung_wr_ac_ueberschuss_grenze
+            name: WR AC-Grenze
+          - entity: input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
+            name: 70% Grenze
+          - entity: sensor.house_battery_runtime_raw
+            name: Akkulaufzeit
+          - entity: sensor.ueberschuss_pv_watt
+
