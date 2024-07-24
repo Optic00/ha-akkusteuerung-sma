@@ -87,20 +87,20 @@ Dann noch einen Schalter **akku_opti_automatik** ob diese Ladeoptimerung überha
 
 Vier Input Numbers anlegen, Minimaler Wert 100, maximaler Wert 10000 (Watt) für:
 
-input_number.akkusteuerung_ladestaerke_soll und 
-input_number.akkusteuerung_entladestaerke_soll
-input_number.akkusteuerung_02c_ladestaerke
+- input_number.akkusteuerung_ladestaerke_soll und 
+- input_number.akkusteuerung_entladestaerke_soll
+- input_number.akkusteuerung_02c_ladestaerke
 
 Dieser Helfer sollte den Wert oder einen leicht niedrigeren Wert enthalten der die 70% Abregelung enthält. (z.B. 7000 Watt bei einer 10kW Watt Anlage oder leicht drunter, etwa 6800 Watt)
 
-input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
+- input_number.akkusteuerung_wr_70proz_ueberschuss_grenze
 
 Dieser Helfer bekommt den Wert der maximalen AC Einspeiseleistung des Wechselrichters. Bei einem SMA STP SE 10.0 also 10000 Watt bzw. leicht drunter etwa 9900. Die Soll-Ladestärke wird dann auf 100 Watt gesetzt und so autoamtisch der AC-Überschuss in den Akku geladen (falls dieser noch nicht voll ist)
 
-input_number.akkusteuerung_wr_ac_ueberschuss_grenze
+- input_number.akkusteuerung_wr_ac_ueberschuss_grenze
 
 für den letzten z.B. 1-100kWh, dies steuert die Schwelle ab wann der Akku von 50% aufwärts geladen wird.
 
-input_number.akkusteuerung_ab_welchem_restertrag_vollladen
+- input_number.akkusteuerung_ab_welchem_restertrag_vollladen
 
 <img width="500" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/6a1ae098-817a-4029-b732-442eeee4ae6d">
