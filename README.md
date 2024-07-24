@@ -104,3 +104,7 @@ für den letzten z.B. 1-100kWh, dies steuert die Schwelle ab wann der Akku von 5
 - input_number.akkusteuerung_ab_welchem_restertrag_vollladen
 
 <img width="500" alt="image" src="https://github.com/Optic00/ha-smase-akkusteuerung/assets/20187253/6a1ae098-817a-4029-b732-442eeee4ae6d">
+
+So schaut es im HA aktuell aus. Hab noch einen Dummy-Schalter für den Fall das die Module/Anlage mal ausfällt. Da ist aber noch nichts aktives in der Automation enthalten.
+
+<img width="505" alt="image" src="https://github.com/user-attachments/assets/82cfe4d3-9034-4cf5-953c-65b624f5250e">
