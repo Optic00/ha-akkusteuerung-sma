@@ -75,7 +75,7 @@ action:
           value:
             - 0
             - >-
-              {{ states('input_number.byd_akkusteuerung_entladestaerke_soll') |
+              {{ states('input_number.akkusteuerung_entladestaerke_soll') |
               int }}
   - alias: Wenn Akku Pause ...
     if:
