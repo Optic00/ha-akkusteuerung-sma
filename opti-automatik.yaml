@@ -126,6 +126,7 @@ action:
               - Akku Opti-Automatik AN/AUS
               - PV-70%-Überschuss
               - PV-70%-Überschuss-Aus
+              - BYD Änderung
           - condition: state
             entity_id: input_boolean.akku_opti_automatik
             state: "on"
