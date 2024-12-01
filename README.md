@@ -76,6 +76,30 @@ Man benötigt einen Sensor der den möglichen Überschuss für den Akku berechne
       unit_of_measurement: factor
       state: "{{ (((((states('sensor.sn_3017XXXXXX_battery_discharge_total') | float) + (states('sensor.sn_3017XXXXXX_battery_charge_total') | float)) / 100 ) * (states('sensor.sn_3017XXXXXX_battery_capacity_total')) | float) / (2*10.2) ) | round(1) }}"
 
+**Hier Restlaufzeit berechnen, ich weiss nicht von wem das herkam aber:**
+
+    - unique_id: "house_battery_runtime_raw"
+      name: "House Battery Runtime Raw"
+      unit_of_measurement: "hours"
+      state: >
+        {% set battery_load = -1 * float(states('sensor.house_battery_load_30_mins')) if states('sensor.house_battery_load_30_mins')|is_number else 0 %}
+        {% if battery_load == 0 %}
+        {% set runtime = 0 %}
+        {% else %}
+        {% set solis_remaining_capacity = states('sensor.sn_30156*****_battery_soc_total') %}
+        {% set remaining_capacity = 12.8 - (0.1280 * (100.0 - float(solis_remaining_capacity) if solis_remaining_capacity != 'unknown' and solis_remaining_capacity|float >= 0 else 0)) %}
+        {% set runtime = remaining_capacity / (battery_load/1000) %}
+        {% endif %}
+        {{ runtime }}
+
+** zum vorherigen braucht man noch einen Statistik Sensor, bei mir unter sensor/statistik.yaml **
+
+    - platform: statistics
+      name: "House Battery Load 30 mins"
+      entity_id: sensor.sn_3015*****_battery_power_discharge_total
+      state_characteristic: mean
+      max_age:
+        minutes: 30
 
 dieser HA-Helfer zur Auswahl des Akku-Modus muss angelegt werden:
 
