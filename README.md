@@ -7,7 +7,7 @@ Dieses Projekt ist als Baukasten zu sehen, nicht als "schlüsselfertige Lösung"
 
 **September 2025 - Neue Modbusadressen bekannt um besser steuern zu können***
 
-Dank eines Users im Photovoltaikforum gibt es von SMA jetzt eine bisher unbekannte Möglichkeit direkt die maximale Lade- und Entladestärke direkt zu steuern. So Konnte die Steuerung extrem aufgeräumt und reduziert werden. Es ist nun möglich den Akku z.B. auf "nur Laden" zu stellen und einen maximalen Ladewert anzugeben. Ich habe außerdem Templates für einen dynamischen SoC und Ladesoll erstellt die anhang der Akkukapazität und Resterzeugung (PV-Sol) die besten Zeitpunkte errechnen den Akku von 50 auf 60, auf 70, auf 80% usw. zu Laden. Außerdem habe ich in der Akkusteuerung neue Helfer für min/max SoC erstellt. 
+Dank eines Users im Photovoltaikforum (https://www.photovoltaikforum.com/thread/215473-begrenzen-der-lade-entladeleistung-byd-mit-stp-se/?postID=4033278#post4033278) gibt es von SMA jetzt eine bisher unbekannte Möglichkeit direkt die maximale Lade- und Entladestärke direkt zu steuern. So Konnte die Steuerung extrem aufgeräumt und reduziert werden. Es ist nun möglich den Akku z.B. auf "nur Laden" zu stellen und einen maximalen Ladewert anzugeben. Ich habe außerdem Templates für einen dynamischen SoC und Ladesoll erstellt die anhang der Akkukapazität und Resterzeugung (PV-Sol) die besten Zeitpunkte errechnen den Akku von 50 auf 60, auf 70, auf 80% usw. zu Laden. Außerdem habe ich in der Akkusteuerung neue Helfer für min/max SoC erstellt. 
 
 Es ist noch Luft nach oben um das Ganze etwas abzurunden. Hier erstmal die erste Version. Den Teil mit dynamischen Strompreisen habe ich für diesen Herbst/Winter vorgenommen zumindest in einer groben Version einzubauen. 
 
