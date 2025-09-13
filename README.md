@@ -154,43 +154,49 @@ So schaut es im HA aktuell aus. Hab noch einen Dummy-Schalter für den Fall das 
           - type: conditional
             conditions:
               - condition: numeric_state
-                entity: sensor.sn_30XXXXXXXX_battery_power_discharge_total
+                entity: sensor.sn_301XXXXXXX_battery_power_discharge_total
                 above: 0.001
             chip:
               type: template
-              entity: sensor.sn_30XXXXXXXX_battery_power_discharge_total
-              content: '{{( states(entity) | float / 1000) | round(2) }}  kW '
+              entity: sensor.sn_301XXXXXXX_battery_power_discharge_total
+              content: "{{( states(entity) | float / 1000) | round(2) }}  kW "
               icon: mdi:battery-minus
               icon_color: red
           - type: conditional
             conditions:
               - condition: numeric_state
-                entity: sensor.sn_30XXXXXXXX_battery_power_charge_total
+                entity: sensor.sn_301XXXXXXX_battery_power_charge_total
                 above: 0.001
             chip:
               type: entity
-              entity: sensor.sn_30XXXXXXXX_battery_power_charge_total
+              entity: sensor.sn_301XXXXXXX_battery_power_charge_total
               icon: mdi:battery-positive
               icon_color: green
           - type: entity
-            entity: sensor.sn_30XXXXXXXX_battery_soc_total
+            entity: sensor.sn_301XXXXXXX_battery_soc_total
             icon_color: blue
           - type: template
             entity: sensor.byd_12_8_akku_wirkungsgrad_ladung_und_entladung
-            content: '{{ states(entity) | round (1)}}% η'
+            content: "{{ states(entity) | round (1)}}% η"
             icon: mdi:vector-difference
             icon_color: orange
           - type: template
             entity: sensor.byd_12_8_akku_zyklen
-            content: '{{ states(entity)}}'
+            content: "{{ states(entity)}}"
             icon: mdi:counter
             icon_color: yellow
           - type: entity
-            entity: sensor.sn_30XXXXXXXX_battery_temp_a
+            entity: sensor.sn_301XXXXXXX_battery_temp_a
             icon: mdi:battery-charging-wireless-outline
           - type: entity
             entity: sensor.sma_stp_se_temperatur
             icon: mdi:power-socket-it
+      - type: entities
+        entities:
+          - entity: sensor.akkusteuerung_dynamische_ladestaerke
+          - entity: sensor.pv_forecast_bewertung_heute
+          - entity: sensor.pv_forecast_bewertung_morgen
+          - entity: sensor.house_battery_runtime_raw
       - type: custom:mushroom-select-card
         entity: input_select.akkusteuerung_sma_wr
         name: Akkusteuerung
@@ -198,19 +204,31 @@ So schaut es im HA aktuell aus. Hab noch einen Dummy-Schalter für den Fall das 
         secondary_info: last-changed
       - type: tile
         entity: input_boolean.akku_opti_automatik
+        features_position: bottom
+        vertical: false
       - type: tile
         entity: input_boolean.akku_nach_preis_laden
+        features_position: bottom
+        vertical: false
       - type: tile
         entity: input_boolean.pv_module_nicht_verfugbar
         name: PV-Module NA (z.B. Schnee bedeckt)
+        features_position: bottom
+        vertical: false
       - type: horizontal-stack
         cards:
           - type: tile
-            entity: sensor.sn_30XXXXXXXX_battery_discharge_total
+            entity: sensor.sn_301XXXXXXX_battery_discharge_total
             name: Entladen Watt
+            features_position: bottom
+            vertical: false
           - type: tile
-            entity: sensor.sn_30XXXXXXXX_battery_charge_total
+            entity: sensor.sn_301XXXXXXX_battery_charge_total
             name: Laden Watt
+      - type: entities
+        entities:
+          - entity: sensor.betriebsstatus_sma_stp_se_10_0
+            name: Betriebsstatus
       - type: entities
         entities:
           - entity: input_number.akkusteuerung_ladestaerke_soll
@@ -227,4 +245,27 @@ So schaut es im HA aktuell aus. Hab noch einen Dummy-Schalter für den Fall das 
           - entity: sensor.house_battery_runtime_raw
             name: Akkulaufzeit
           - entity: sensor.ueberschuss_pv_watt
+          - entity: switch.0x54ef441000ac86e9
+            name: WR Lüfter
+            secondary_info: last-changed
+          - entity: input_number.akkusteuerung_max_ladestaerke
+            name: Akku max Ladestärke
+          - entity: input_number.akkusteuerung_min_ladestaerke
+            name: Akku min Ladestärke
+          - entity: input_number.akkusteuerung_max_entladestaerke
+            name: Akku max Entadestärke
+          - entity: input_number.akkusteuerung_min_entladestaerke
+            name: Akku min Entladestärke
+          - entity: input_number.minsoc
+          - entity: input_number.maxsoc
+      - type: heading
+        icon: ""
+        heading: Debugging
+        heading_style: title
+      - type: entities
+        entities:
+          - entity: sensor.akku_target_soc_intelligent
+          - entity: sensor.akku_net_verfugbare_energie
+          - entity: sensor.verbleibende_sonnenstunden
+
 
