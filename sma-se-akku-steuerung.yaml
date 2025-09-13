@@ -1,45 +1,81 @@
-alias: Akkusteuerung
+alias: Akkusteuerung 2.0
 description: ""
-trigger:
-  - platform: state
-    entity_id:
+triggers:
+  - entity_id:
       - input_select.akkusteuerung_sma_wr
-      - input_number.akkusteuerung_ladestaerke_soll
       - input_number.akkusteuerung_entladestaerke_soll
+      - input_number.akkusteuerung_ladestaerke_soll
+      - input_number.akkusteuerung_02c_ladestaerke
+      - input_number.akkusteuerung_min_ladestaerke
+      - input_number.akkusteuerung_min_entladestaerke
+      - input_number.akkusteuerung_max_ladestaerke
+      - input_number.akkusteuerung_max_entladestaerke
     from: null
     to: null
     for:
       hours: 0
       minutes: 0
-      seconds: 1
-  - platform: time_pattern
-    minutes: /30
+      seconds: 2
+    trigger: state
+  - minutes: /4
     enabled: true
-  - platform: homeassistant
-    event: start
-condition: []
-action:
-  - alias: Wenn Akku schnell Laden ...
+    trigger: time_pattern
+  - event: start
+    trigger: homeassistant
+conditions:
+  - condition: state
+    entity_id: sensor.sn_3015673521_status
+    state: Ok
+actions:
+  - alias: Wenn Akku Automatik
     if:
       - condition: state
         entity_id: input_select.akkusteuerung_sma_wr
-        state: Akku schnell Laden
+        state: Akku Automatisch
     then:
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
             - 0
             - 802
+        action: modbus.write_register
       - delay:
           hours: 0
           minutes: 0
-          seconds: 5
+          seconds: 2
           milliseconds: 0
-      - service: modbus.write_register
-        data:
+      - data:
+          hub: sma-sr_wr
+          address: 40151
+          slave: 3
+          value:
+            - 0
+            - 803
+        action: modbus.write_register
+      - stop: ""
+    enabled: true
+  - alias: Wenn Akku schnell Laden ...
+    if:
+      - condition: state
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku schnell Laden
+    then:
+      - data:
+          hub: sma-sr_wr
+          address: 40151
+          slave: 3
+          value:
+            - 0
+            - 802
+        action: modbus.write_register
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      - data:
           hub: sma-sr_wr
           address: 40149
           slave: 3
@@ -48,97 +84,206 @@ action:
             - >-
               {{ 65535 - states('input_number.akkusteuerung_ladestaerke_soll') |
               int }}
+        action: modbus.write_register
+      - stop: fertig
+    enabled: true
   - alias: Wenn Akku schnell Entaden ...
     if:
       - condition: state
         entity_id: input_select.akkusteuerung_sma_wr
         state: Akku schnell Entladen
     then:
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
             - 0
             - 802
+        action: modbus.write_register
       - delay:
           hours: 0
           minutes: 0
-          seconds: 5
+          seconds: 2
           milliseconds: 0
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
           address: 40149
           slave: 3
           value:
             - 0
             - >-
-              {{ states('input_number.akkusteuerung_entladestaerke_soll') |
-              int }}
+              {{ states('input_number.akkusteuerung_entladestaerke_soll') | int
+              }}
+        action: modbus.write_register
+      - stop: fertig
+    enabled: true
+  - data:
+      hub: sma-sr_wr
+      address: 40151
+      slave: 3
+      value:
+        - 0
+        - 803
+    action: modbus.write_register
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - data:
+      hub: sma-sr_wr
+      address: 40793
+      slave: 3
+      value:
+        - 0
+        - "{{ states('input_number.akkusteuerung_min_ladestaerke') | int }}"
+    action: modbus.write_register
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - alias: Schreib die maximale Ladestärke auf Modbus
+    data:
+      hub: sma-sr_wr
+      address: 40795
+      slave: 3
+      value:
+        - 0
+        - "{{ states('sensor.akkusteuerung_dynamische_ladestaerke') | int }}"
+    action: modbus.write_register
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - data:
+      hub: sma-sr_wr
+      address: 40797
+      slave: 3
+      value:
+        - 0
+        - "{{ states('input_number.akkusteuerung_min_entladestaerke') | int }}"
+    action: modbus.write_register
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - data:
+      hub: sma-sr_wr
+      address: 40799
+      slave: 3
+      value:
+        - 0
+        - "{{ states('input_number.akkusteuerung_max_entladestaerke') | int }}"
+    action: modbus.write_register
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - data:
+      hub: sma-sr_wr
+      address: 40801
+      slave: 3
+      value:
+        - 0
+        - 0
+    action: modbus.write_register
   - alias: Wenn Akku Pause ...
     if:
       - condition: state
         entity_id: input_select.akkusteuerung_sma_wr
         state: Akku Pause
     then:
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
-          address: 40151
+          address: 41259
           slave: 3
           value:
             - 0
-            - 802
-      - delay:
-          hours: 0
-          minutes: 0
-          seconds: 5
-          milliseconds: 0
-      - service: modbus.write_register
-        data:
-          hub: sma-sr_wr
-          address: 40149
-          slave: 3
-          value:
-            - 0
-            - 0
+            - 303
+        action: modbus.write_register
+    enabled: true
   - if:
       - condition: state
         entity_id: input_select.akkusteuerung_sma_wr
-        state: Akku Automatisch
+        state: Akku nur Laden
     then:
-      - service: modbus.write_register
-        data:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 1
+          milliseconds: 0
+      - data:
           hub: sma-sr_wr
-          address: 40151
+          address: 41259
           slave: 3
           value:
             - 0
-            - 803
-    alias: Wenn Akku Automatik
+            - 2289
+        action: modbus.write_register
+    alias: Bei "Akku nur Laden"
+  - alias: Bei "Akku nur Entladen"
+    if:
+      - condition: state
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku nur Entladen
+    then:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 1
+          milliseconds: 0
+      - data:
+          hub: sma-sr_wr
+          address: 41259
+          slave: 3
+          value:
+            - 0
+            - 2290
+        action: modbus.write_register
+  - alias: Bei "Akku Dynamisch"
+    if:
+      - condition: state
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku Dynamisch
+    then:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 1
+          milliseconds: 0
+      - data:
+          hub: sma-sr_wr
+          address: 40236
+          slave: 3
+          value:
+            - 0
+            - 1438
+        action: modbus.write_register
   - alias: Wenn Akku 0.2C Laden
     if:
       - condition: state
         entity_id: input_select.akkusteuerung_sma_wr
         state: Akku 0.2C Laden
     then:
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
           address: 40151
           slave: 3
           value:
             - 0
             - 802
+        action: modbus.write_register
       - delay:
           hours: 0
           minutes: 0
-          seconds: 5
+          seconds: 2
           milliseconds: 0
-      - service: modbus.write_register
-        data:
+      - data:
           hub: sma-sr_wr
           address: 40149
           slave: 3
@@ -147,4 +292,34 @@ action:
             - >-
               {{ 65535 - states('input_number.akkusteuerung_02c_ladestaerke') |
               int }}
+        action: modbus.write_register
+    enabled: false
+  - alias: Wenn Akku nur Entladen
+    if:
+      - condition: state
+        entity_id: input_select.akkusteuerung_sma_wr
+        state: Akku nur Entladen
+    then:
+      - data:
+          hub: sma-sr_wr
+          address: 40151
+          slave: 3
+          value:
+            - 0
+            - 802
+        action: modbus.write_register
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      - data:
+          hub: sma-sr_wr
+          address: 41259
+          slave: 3
+          value:
+            - 0
+            - 2290
+        action: modbus.write_register
+    enabled: false
 mode: single
