@@ -7,6 +7,8 @@ Dieses Projekt wird in keinster Weise von der Firma SMA begleitet oder supported
 
 Dank eines Users im Photovoltaikforum gibt es von SMA jetzt eine bisher unbekannte Möglichkeit direkt die maximale Lade- und Entladestärke direkt zu steuern. So Konnte die Steuerung extrem aufgeräumt und reduziert werden. Es ist nun möglich den Akku z.B. auf "nur Laden" zu stellen und einen maximalen Ladewert anzugeben. Ich habe außerdem Templates für einen dynamischen SoC und Ladesoll erstellt die anhang der Akkukapazität und Resterzeugung (PV-Sol) die besten Zeitpunkte errechnen den Akku von 50 auf 60, auf 70, auf 80% usw. zu Laden. Außerdem habe ich in der Akkusteuerung neue Helfer für min/max SoC erstellt. 
 
+Es ist noch Luft nach oben um das Ganze etwas abzurunden. Hier erstmal die erste Version. 
+
 **Neue Betafirma seit 16.07.2024 stellt wieder die alte Funktionalität her, dass der Wechselrichter direkt über Modbus gesteurt werden kann**
 Grid Guard Code usw. nicht mehr notwendig!
 
