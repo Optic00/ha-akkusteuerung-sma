@@ -8,8 +8,9 @@
 
 ## Cross-model review
 
-<!-- External contributors: leave this section empty; the maintainer completes
-it before merging. Mention any AI tools you used in the summary. -->
+<!-- External contributors: tick "Pending" and leave the fields below empty.
+Before merging, the maintainer replaces "Pending" with the final status and
+completes the fields. Mention any AI tools you used in the summary. -->
 
 Select exactly one status:
 

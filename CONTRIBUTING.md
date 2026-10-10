@@ -20,8 +20,7 @@ Beiträge sind willkommen. Arbeitssprache ist Deutsch.
   nur automatisiert. Zum Nachstellen keine Schreibfreigabe an einer produktiven
   Anlage einschalten.
 - Keine privaten Daten ins Repository: keine Zugangsdaten, Hostnamen,
-  Seriennummern, Shadow-Aufzeichnungen oder Messhistorien. Die CI prüft das
-  zusätzlich.
+  Seriennummern, Shadow-Aufzeichnungen oder Messhistorien.
 - Beiträge stehen unter der [MIT-Lizenz](LICENSE) des Projekts.
 
 Das unabhängige Review nach [REVIEW_POLICY.md](REVIEW_POLICY.md) führt der

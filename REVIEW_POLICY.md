@@ -8,9 +8,9 @@ or provider than the model primarily responsible for the change, when such a
 reviewer is available.
 
 For external contributions, the maintainer obtains and records this review
-before merge. External contributors do not need to provide review evidence;
-a change written without AI tools has the human contributor as its primary
-author.
+before merge. External contributors do not need to provide review evidence.
+For a change written without AI tools, record "human (no AI)" as the primary
+author; any approved reviewer model then counts as independent.
 
 ## Scope
 
