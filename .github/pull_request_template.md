@@ -8,6 +8,9 @@
 
 ## Cross-model review
 
+<!-- External contributors: leave this section empty; the maintainer completes
+it before merging. Mention any AI tools you used in the summary. -->
+
 Select exactly one status:
 
 - [ ] Required and completed
@@ -15,6 +18,7 @@ Select exactly one status:
       operational meaning
 - [ ] Independent reviewer unavailable after a reasonable authentication or
       connectivity attempt
+- [ ] Pending: external contribution, review by the maintainer before merge
 
 Primary author/implementer model:
 
