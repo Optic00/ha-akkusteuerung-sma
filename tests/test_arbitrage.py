@@ -687,6 +687,16 @@ def test_precharge_comparison_holds_previous_check():
     assert totals["ready_seconds"] == 60  # held not_applicable interval adds nothing
 
 
+def test_precharge_comparison_interrupt_never_counts_the_failed_interval():
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check(), ASSUME)
+    acc.interrupt()
+    totals = acc.observe(NOW + timedelta(seconds=60), ready_check(), ASSUME)
+    assert totals["ready_seconds"] == 0
+    totals = acc.observe(NOW + timedelta(seconds=90), ready_check(), ASSUME)
+    assert totals["ready_seconds"] == 30
+
+
 def test_precharge_comparison_ignores_gaps_and_backwards_clock():
     acc = PrechargeComparison()
     acc.observe(NOW, ready_check(), ASSUME)

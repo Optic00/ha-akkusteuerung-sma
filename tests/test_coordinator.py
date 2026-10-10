@@ -2958,6 +2958,27 @@ async def test_precharge_comparison_absent_without_configuration(coordinator):
     assert coordinator._precharge_comparison.data["started_at"] is None
 
 
+async def test_precharge_comparison_failure_keeps_the_hold_report(coordinator):
+    data = await coordinator._async_update_data()
+    now = dt_util.utcnow()
+    options = {"arbitrage_estimate": PRECHARGE_OPTIONS}
+    await _precharge_report(coordinator, data, now, options)
+    hold = {"hold_enabled": True, "hold_status": "holding", "hold_controls_battery": False}
+    with patch(
+        "custom_components.opti_akku.coordinator.precharge_spread_check",
+        side_effect=RuntimeError("boom"),
+    ):
+        coordinator._update_arbitrage_report(data, now + timedelta(seconds=30), options, hold, None)
+    report = data["arbitrage_estimate"]
+    assert report["status"] == "ready"
+    assert report["hold_status"] == "holding"
+    assert report["minimum_spread_ct_kwh"] is not None
+    assert report["precharge_comparison"] == {
+        "status": "error", "informational_only": True, "controls_battery": False}
+    report = await _precharge_report(coordinator, data, now + timedelta(seconds=60), options)
+    assert report["precharge_comparison"]["totals"]["ready_seconds"] == 0
+
+
 async def test_precharge_comparison_does_not_change_control(coordinator, entry, hass):
     baseline = await coordinator._async_update_data()
     hass.config_entries.async_update_entry(

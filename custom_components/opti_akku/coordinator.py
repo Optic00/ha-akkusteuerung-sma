@@ -1138,19 +1138,27 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if data["arbitrage_estimate"].get("status") not in (
                 "not_configured", "invalid", "strategy_disabled"
             ):
-                check = precharge_spread_check(
-                    data["arbitrage_estimate"],
-                    data["states"],
-                    data["attributes"],
-                    self.settings,
-                    data["decision_id"],
-                )
-                data["arbitrage_estimate"]["precharge_comparison"] = {
-                    **check,
-                    "totals": self._precharge_comparison.observe(
-                        now, check, precharge_assumptions(arbitrage_cfg, self.settings)
-                    ),
-                }
+                # Own error boundary: the hold logic reads this report back next cycle.
+                try:
+                    check = precharge_spread_check(
+                        data["arbitrage_estimate"],
+                        data["states"],
+                        data["attributes"],
+                        self.settings,
+                        data["decision_id"],
+                    )
+                    comparison = {
+                        **check,
+                        "totals": self._precharge_comparison.observe(
+                            now, check, precharge_assumptions(arbitrage_cfg, self.settings)
+                        ),
+                    }
+                except Exception as err:  # Observation only; never affects the hold report.
+                    _LOGGER.debug("Precharge comparison unavailable: %s", type(err).__name__)
+                    self._precharge_comparison.interrupt()
+                    comparison = {"status": "error", "informational_only": True,
+                                  "controls_battery": False}
+                data["arbitrage_estimate"]["precharge_comparison"] = comparison
             data["arbitrage_estimate"].update(arbitrage_hold)
             data["arbitrage_estimate"].update(
                 hold_status=(

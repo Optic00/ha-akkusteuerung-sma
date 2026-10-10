@@ -647,6 +647,10 @@ class PrechargeComparison:
         out["last_observation"] = self.data["last_observation"]
         return out
 
+    def interrupt(self) -> None:
+        """A failed observation ends the held verdict; the gap never counts."""
+        self._previous = None
+
     def observe(self, now: datetime, check: Mapping[str, Any], assumptions: list[Any]) -> dict[str, Any]:
         if self.data["assumptions"] != assumptions:
             self.data = self._fresh()
