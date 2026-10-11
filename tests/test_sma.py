@@ -782,3 +782,18 @@ async def test_superseded_command_reports_cleanup_outcome(device, fail_cleanup):
     assert exc.value.cleanup_failed is fail_cleanup
     assert adapter.last_mode == (None if fail_cleanup else sma.PAUSE)
     assert sma.StaleCommandError().cleanup_failed is False
+
+
+def test_ac_surplus_suggestion_covers_model_table():
+    """Every verified model gets a limit the clipped AC output can still reach."""
+    assert sma.MODEL_POWER_W.keys() == sma.MODEL_NAMES.keys()
+    expected = {19048: 4500, 19049: 5500, 19050: 7500, 19051: 9500}
+    assert {model: sma.ac_surplus_suggestion_w(model) for model in sma.MODEL_POWER_W} == expected
+    for model, power in sma.MODEL_POWER_W.items():
+        # The strategy switches off 300 W below the limit; that must stay positive.
+        assert 300 < sma.ac_surplus_suggestion_w(model) < power
+
+
+@pytest.mark.parametrize("model", [None, 0, 19047, True, "19051"])
+def test_ac_surplus_suggestion_requires_verified_model(model):
+    assert sma.ac_surplus_suggestion_w(model) is None

@@ -80,7 +80,11 @@
           "akkusteuerung_max_ladestaerke": "Maximum charge power",
           "akkusteuerung_max_entladestaerke": "Maximum discharge power",
           "opti_pv_ueberschuss_ladung": "Allow PV surplus charging",
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC surplus threshold",
           "opti_manuelle_ladegrenze": "Forecast-independent charge limit (temporary)"
+        },
+        "data_description": {
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "0 turns this off. Useful when PV power exceeds the inverter's AC power and output is clipped around midday. The battery then charges from surplus above the limit if PV surplus charging is allowed. Suggestion for the detected model: {ac_limit_suggestion}. The value is not applied automatically."
         }
       },
       "tariff": {
@@ -161,7 +165,6 @@
           "akkusteuerung_min_ladestaerke": "Minimum charge power",
           "akkusteuerung_entladestaerke_soll": "Manual discharge power",
           "akkusteuerung_min_entladestaerke": "Minimum discharge power",
-          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC surplus threshold",
           "akkusteuerung_wr_70proz_ueberschuss_grenze": "70% PV threshold",
           "akkusteuerung_ueberschuss_veto_grenze": "Export: enable above",
           "akkusteuerung_ueberschuss_veto_aus_grenze": "Export: disable below",
@@ -452,7 +455,11 @@
           "akkusteuerung_max_ladestaerke": "Maximum charge power",
           "akkusteuerung_max_entladestaerke": "Maximum discharge power",
           "opti_pv_ueberschuss_ladung": "Allow PV surplus charging",
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC surplus threshold",
           "opti_manuelle_ladegrenze": "Forecast-independent charge limit (temporary)"
+        },
+        "data_description": {
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "0 turns this off. Useful when PV power exceeds the inverter's AC power and output is clipped around midday. The battery then charges from surplus above the limit if PV surplus charging is allowed. Suggestion for the detected model: {ac_limit_suggestion}. The value is not applied automatically."
         }
       },
       "tariff": {
@@ -533,7 +540,6 @@
           "akkusteuerung_min_ladestaerke": "Minimum charge power",
           "akkusteuerung_entladestaerke_soll": "Manual discharge power",
           "akkusteuerung_min_entladestaerke": "Minimum discharge power",
-          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC surplus threshold",
           "akkusteuerung_wr_70proz_ueberschuss_grenze": "70% PV threshold",
           "akkusteuerung_ueberschuss_veto_grenze": "Export: enable above",
           "akkusteuerung_ueberschuss_veto_aus_grenze": "Export: disable below",

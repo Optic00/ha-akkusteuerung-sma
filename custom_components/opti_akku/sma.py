@@ -54,6 +54,15 @@ MODEL_NAMES = {
     19051: "STP10.0-3SE-40",
 }
 MODEL_POWER_W = {19048: 5000, 19049: 6000, 19050: 8000, 19051: 10000}
+# Suggested AC surplus limit stays below nominal AC power: clipped output never
+# exceeds nominal, and the strategy switches off 300 W below the limit.
+AC_SURPLUS_MARGIN_W = 500
+
+
+def ac_surplus_suggestion_w(model_id: object) -> int | None:
+    """Suggest an AC surplus limit for a verified model; never applied automatically."""
+    power = MODEL_POWER_W.get(model_id) if isinstance(model_id, int) else None
+    return None if power is None else power - AC_SURPLUS_MARGIN_W
 RECONCILE_SECONDS = 120
 SETTLING_SECONDS = 330
 SETTLING_CHARGE_W = 500

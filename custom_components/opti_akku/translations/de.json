@@ -80,7 +80,11 @@
           "akkusteuerung_max_ladestaerke": "Max. Ladeleistung",
           "akkusteuerung_max_entladestaerke": "Max. Entladeleistung",
           "opti_pv_ueberschuss_ladung": "PV-Überschussladen erlauben",
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC-Überschussgrenze",
           "opti_manuelle_ladegrenze": "Prognoseunabhängige Ladegrenze (vorübergehend)"
+        },
+        "data_description": {
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "0 schaltet die Funktion aus. Sinnvoll, wenn die PV-Leistung die AC-Leistung des Wechselrichters übersteigt und mittags abgeregelt wird. Dann lädt der Akku oberhalb der Grenze aus dem Überschuss, sofern PV-Überschussladen erlaubt ist. Vorschlag für das erkannte Modell: {ac_limit_suggestion}. Der Wert wird nicht automatisch übernommen."
         }
       },
       "tariff": {
@@ -161,7 +165,6 @@
           "akkusteuerung_min_ladestaerke": "Min. Ladeleistung",
           "akkusteuerung_entladestaerke_soll": "Entladeleistung (manuell)",
           "akkusteuerung_min_entladestaerke": "Min. Entladeleistung",
-          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC-Überschussgrenze",
           "akkusteuerung_wr_70proz_ueberschuss_grenze": "70%-PV-Grenze",
           "akkusteuerung_ueberschuss_veto_grenze": "Einspeisung: Freigabe ab",
           "akkusteuerung_ueberschuss_veto_aus_grenze": "Einspeisung: Sperre unter",
@@ -452,7 +455,11 @@
           "akkusteuerung_max_ladestaerke": "Max. Ladeleistung",
           "akkusteuerung_max_entladestaerke": "Max. Entladeleistung",
           "opti_pv_ueberschuss_ladung": "PV-Überschussladen erlauben",
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC-Überschussgrenze",
           "opti_manuelle_ladegrenze": "Prognoseunabhängige Ladegrenze (vorübergehend)"
+        },
+        "data_description": {
+          "akkusteuerung_wr_ac_ueberschuss_grenze": "0 schaltet die Funktion aus. Sinnvoll, wenn die PV-Leistung die AC-Leistung des Wechselrichters übersteigt und mittags abgeregelt wird. Dann lädt der Akku oberhalb der Grenze aus dem Überschuss, sofern PV-Überschussladen erlaubt ist. Vorschlag für das erkannte Modell: {ac_limit_suggestion}. Der Wert wird nicht automatisch übernommen."
         }
       },
       "tariff": {
@@ -533,7 +540,6 @@
           "akkusteuerung_min_ladestaerke": "Min. Ladeleistung",
           "akkusteuerung_entladestaerke_soll": "Entladeleistung (manuell)",
           "akkusteuerung_min_entladestaerke": "Min. Entladeleistung",
-          "akkusteuerung_wr_ac_ueberschuss_grenze": "AC-Überschussgrenze",
           "akkusteuerung_wr_70proz_ueberschuss_grenze": "70%-PV-Grenze",
           "akkusteuerung_ueberschuss_veto_grenze": "Einspeisung: Freigabe ab",
           "akkusteuerung_ueberschuss_veto_aus_grenze": "Einspeisung: Sperre unter",
