@@ -49,6 +49,7 @@ from .load_profile import LoadProfile
 from .clipping import clipping_forecast
 from .negative_price_hold import NegativePriceHoldShadow, negative_price_hold_check
 from .demand import EV_SCOPE_VERSION, DemandForecast, pv_intervals, ev_profile_sources, ev_profile_scope, profile_house_value
+from .refill_comparison import RefillReserveComparison, refill_reserve_check
 from .demand_comparison import build_strategy_comparison, remaining_day_profile
 from .peak_load import peak_load_profile
 from .ev_preparation import EVPreparation, apply_preparation, command_signals
@@ -194,6 +195,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._score_load_profile = LoadProfile()
         self._operating_report = OperatingReport()
         self._precharge_comparison = PrechargeComparison()
+        self._refill_comparison = RefillReserveComparison()
         self._negative_price_hold = NegativePriceHoldShadow()
         self._demand_forecast = DemandForecast()
         self._ev_preparation = EVPreparation()
@@ -293,6 +295,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.settings["input_boolean.opti_manuelle_ladegrenze"] = False
         self.engine.restore(stored.get("engine", {}))
         self._precharge_comparison.restore(stored.get("precharge_comparison"))
+        self._refill_comparison.restore(stored.get("refill_reserve_comparison"))
         self._negative_price_hold.restore(stored.get("negative_price_hold"))
         self._demand_forecast.restore(stored.get("demand_forecast", {}))
         self._source_observation.restore(stored.get("source_observation", {}))
@@ -393,6 +396,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "source_observation": self._source_observation.snapshot(),
                 "engine": self._engine_snapshot, "operating_report": self._operating_report.snapshot(),
                 "precharge_comparison": self._precharge_comparison.snapshot(),
+                "refill_reserve_comparison": self._refill_comparison.snapshot(),
                 "negative_price_hold": self._negative_price_hold.snapshot(), "load_profile": self._load_profile.snapshot(),
                 "score_load_profile": self._score_load_profile.snapshot(),
                 "load_source_fingerprint": self._load_source_fingerprint,
@@ -1113,12 +1117,32 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data["demand_forecast"] = {
                 **data["demand_forecast"], "strategy_comparison": comparison
             }
+            self._update_refill_comparison(data, now)
+        else:
+            # Disabled time must not count under the last held verdict after re-enabling.
+            self._refill_comparison.interrupt()
         self._update_negative_price_hold(
             data, now, (captured_options.get("sources", {}).get("forecast_today"), demand_sources.get("pv_today")))
         self._update_arbitrage_report(data, now, captured_options, arbitrage_hold, safety_reason)
         await self._async_update_observations(data, now, captured_options)
         self._store.async_delay_save(self._stored_data, 5)
         return data
+
+    def _update_refill_comparison(self, data, now):
+        """Attach the peak-versus-refill shadow comparison; it never changes control."""
+        try:
+            check = refill_reserve_check(
+                data.get("demand_forecast"), data.get("reserve_plan"), data.get("states")
+            )
+            comparison = {**check, "totals": self._refill_comparison.observe(now, check)}
+        except Exception as err:  # Observation only; never affects the demand report.
+            _LOGGER.debug("Refill reserve comparison unavailable: %s", type(err).__name__)
+            self._refill_comparison.interrupt()
+            comparison = {"status": "error", "informational_only": True,
+                          "controls_battery": False}
+        data["demand_forecast"] = {
+            **data["demand_forecast"], "refill_reserve_comparison": comparison
+        }
 
     def _update_operating_report(self, data, now, ev_report, safety_reason, write_failed):
         """Reporting failures must not interrupt an already evaluated command."""
