@@ -3040,3 +3040,22 @@ async def test_clipping_forecast_is_published_as_observation(coordinator, hass, 
     assert 0 <= float(data["states"]["sensor.opti_clipping_forecast_kwh"]) <= attrs["day_p50_kwh"]
     assert data["metadata"]["sensor.opti_clipping_forecast_kwh"]["unit_of_measurement"] == "kWh"
     coordinator.device.async_apply.assert_not_awaited()
+
+
+async def test_clipping_forecast_falls_back_to_demand_solcast_source(coordinator, hass, entry):
+    hass.config_entries.async_update_entry(entry, options={
+        **entry.options, "demand_forecast": {"enabled": True, "sources": {"pv_today": "sensor.solcast_demand"}}})
+    coordinator.settings["input_number.akkusteuerung_wr_ac_ueberschuss_grenze"] = 9500
+    data = await coordinator._async_update_data()
+    attrs = data["attributes"]["sensor.opti_clipping_forecast_kwh"]
+    assert attrs["source"] == "sensor.solcast_demand"
+    assert attrs["status"] == "no_forecast"
+
+
+async def test_clipping_forecast_error_never_stops_the_update(coordinator):
+    with patch("custom_components.opti_akku.coordinator.clipping_forecast",
+               side_effect=RuntimeError("boom")):
+        data = await coordinator._async_update_data()
+    assert data["states"]["sensor.opti_clipping_forecast_kwh"] == "unavailable"
+    assert data["attributes"]["sensor.opti_clipping_forecast_kwh"]["status"] == "error"
+    assert data["mode"] == "Akku Pause"
