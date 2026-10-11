@@ -168,3 +168,8 @@ def test_snapshot_restore_roundtrip_and_broken_input():
         fresh = RefillReserveComparison()
         fresh.restore(broken)
         assert fresh.data == RefillReserveComparison().data
+
+
+def test_soc_outside_range_is_invalid():
+    for soc in (-0.1, 100.1, 250):
+        assert check(states={**STATES, "sensor.opti_soc": soc})["status"] == "soc_invalid"

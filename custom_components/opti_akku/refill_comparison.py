@@ -66,6 +66,8 @@ def refill_reserve_check(demand: Any, plan: Any, states: Any) -> dict[str, Any]:
     soc = _number(states.get("sensor.opti_soc"))
     if soc is None:
         return {**base, "status": "soc_missing"}
+    if not 0 <= soc <= 100:
+        return {**base, "status": "soc_invalid"}
     capacity = _number(states.get("sensor.opti_battery_capacity_kwh"))
     difference = peak - refill
     peak_holds = soc <= peak

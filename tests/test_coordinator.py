@@ -3150,7 +3150,11 @@ def _enable_demand(coordinator):
 async def test_refill_comparison_attached_with_demand_forecast(coordinator):
     _enable_demand(coordinator)
     data = await coordinator._async_update_data()
-    assert data["demand_forecast"]["refill_reserve_comparison"]["controls_battery"] is False
+    attached = data["demand_forecast"]["refill_reserve_comparison"]
+    assert attached["controls_battery"] is False
+    # The fixture has no active peak reserve; the attached report says so explicitly.
+    assert attached["status"] == "not_applicable"
+    assert attached["totals"]["ready_seconds"] == 0
     # Direct call with prepared data accumulates time-weighted totals.
     now = dt_util.utcnow()
     prepared = _refill_data()
@@ -3166,6 +3170,15 @@ async def test_refill_comparison_attached_with_demand_forecast(coordinator):
     # The source report keys stay untouched.
     for key, value in REFILL_DEMAND.items():
         assert prepared["demand_forecast"][key] == value
+
+
+async def test_refill_comparison_disabled_time_does_not_count(coordinator):
+    now = dt_util.utcnow()
+    coordinator._update_refill_comparison(_refill_data(), now)
+    await coordinator._async_update_data()  # demand forecast disabled in the fixture
+    prepared = _refill_data()
+    coordinator._update_refill_comparison(prepared, now + timedelta(seconds=30))
+    assert prepared["demand_forecast"]["refill_reserve_comparison"]["totals"]["ready_seconds"] == 0
 
 
 async def test_refill_comparison_absent_without_demand_forecast(coordinator):
@@ -3210,6 +3223,9 @@ async def test_refill_comparison_does_not_change_control(coordinator):
     with_feature = await coordinator._async_update_data()
     for key in ("mode", "reason", "decision_id", "params"):
         assert with_feature.get(key) == baseline.get(key)
+    plan_keys = ("status", "planned_reserve_soc", "hold_threshold_soc")
+    assert ({k: with_feature["reserve_plan"].get(k) for k in plan_keys}
+            == {k: baseline["reserve_plan"].get(k) for k in plan_keys})
     coordinator.device.async_apply.assert_not_awaited()
 
 

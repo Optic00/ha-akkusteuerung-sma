@@ -1118,6 +1118,9 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 **data["demand_forecast"], "strategy_comparison": comparison
             }
             self._update_refill_comparison(data, now)
+        else:
+            # Disabled time must not count under the last held verdict after re-enabling.
+            self._refill_comparison.interrupt()
         self._update_negative_price_hold(
             data, now, (captured_options.get("sources", {}).get("forecast_today"), demand_sources.get("pv_today")))
         self._update_arbitrage_report(data, now, captured_options, arbitrage_hold, safety_reason)

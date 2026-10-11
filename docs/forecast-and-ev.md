@@ -329,7 +329,7 @@ Wert als Peak-Grenze diente: `hold_threshold` gibt es nur, während die Strategi
 bei aktivem Schreiben tatsächlich hält, sonst gilt `planned_reserve`. Die Summen
 weisen beide Quellen getrennt aus. Er läuft nur bei aktiver Peak-Reserve und
 ausgereiftem Refill-Profil; sonst nennt `status` den Grund (`not_applicable`,
-`forecast_unavailable`, `profile_not_ready`, `soc_missing`).
+`forecast_unavailable`, `profile_not_ready`, `soc_missing`, `soc_invalid`).
 
 Das Urteil lautet `both_hold`, `both_release`, `peak_only` oder `refill_only`.
 `peak_only` heißt: Nur die Peak-Reserve würde halten, die Refill-Reserve nicht.
@@ -338,7 +338,8 @@ liegt als die Peak-Grenze. Unter `totals` stehen die Sekunden je Urteil, der
 mittlere Abstand `mean_difference_soc` (Peak minus Refill) und
 `disagreement_percent`. Lücken über 90 Sekunden, der erste Durchlauf nach einem
 Neustart und rückwärts laufende Uhren zählen nicht; ein Fehler im Vergleich
-unterbricht den Zeitzähler.
+unterbricht den Zeitzähler, ebenso eine ausgeschaltete Bedarfsprognose. Die
+Summen liegen nur im lokalen Speicher der Integration.
 
 ### Erwartete Energie über der AC-Grenze
 
