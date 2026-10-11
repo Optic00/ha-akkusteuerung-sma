@@ -1,0 +1,24 @@
+name: Frage oder Sonstiges
+description: Eine Frage zur Einrichtung oder Bedienung stellen
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte zuerst die [bestehenden Issues](https://github.com/Optic00/ha-opti-akkusteuerung/issues) und die [Dokumentation](https://github.com/Optic00/ha-opti-akkusteuerung#readme) durchsuchen.
+        Dieses Formular ist öffentlich. Keine Tokens, Passwörter, Seriennummern,
+        IP-Adressen, Hostnamen, Personen-, Standort- oder Fahrzeugdaten veröffentlichen.
+        Logs und Screenshots vor dem Teilen selbst prüfen; automatische Anonymisierung wird nicht zugesichert.
+  - type: checkboxes
+    id: preparation
+    attributes:
+      label: Vor dem Absenden
+      options:
+        - label: Ich habe Text und Anhänge auf private Daten und Zugangsdaten geprüft.
+          required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Frage oder Anliegen
+      description: Version und Anbindung (SMA oder Huawei) helfen, wenn sie für die Frage wichtig sind.
+    validations:
+      required: true

@@ -7,6 +7,11 @@ merged, it MUST receive an independent review from a different model family
 or provider than the model primarily responsible for the change, when such a
 reviewer is available.
 
+For external contributions, the maintainer obtains and records this review
+before merge. External contributors do not need to provide review evidence.
+For a change written without AI tools, record "human (no AI)" as the primary
+author; any approved reviewer model then counts as independent.
+
 ## Scope
 
 The requirement covers code, tests, configuration, Home Assistant
