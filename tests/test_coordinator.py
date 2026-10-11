@@ -3013,3 +3013,117 @@ async def test_precharge_comparison_survives_stored_data_restore(coordinator, en
     assert other._precharge_comparison.data["ready_seconds"] == 0
     await restored.async_stop()
     await other.async_stop()
+
+
+REFILL_DEMAND = {
+    "status": "ready", "suggested_reserve_soc": 40.0, "refill_profile_ready": True,
+    "refill_covered": True, "refill_coverage_percent": 95.0, "pv_cover_from": "x",
+}
+
+
+def _refill_data(soc="45"):
+    return {
+        "demand_forecast": dict(REFILL_DEMAND),
+        "reserve_plan": {"planned_reserve_soc": 50.0, "hold_threshold_soc": 55.0},
+        "states": {
+            "binary_sensor.opti_peak_reserve_aktiv": "on",
+            "sensor.opti_soc": soc,
+            "sensor.opti_battery_capacity_kwh": "10",
+        },
+    }
+
+
+def _enable_demand(coordinator):
+    coordinator.hass.config_entries.async_update_entry(
+        coordinator.entry,
+        options={**coordinator.entry.options, "demand_forecast": {"enabled": True}},
+    )
+
+
+async def test_refill_comparison_attached_with_demand_forecast(coordinator):
+    _enable_demand(coordinator)
+    data = await coordinator._async_update_data()
+    assert data["demand_forecast"]["refill_reserve_comparison"]["controls_battery"] is False
+    # Direct call with prepared data accumulates time-weighted totals.
+    now = dt_util.utcnow()
+    prepared = _refill_data()
+    coordinator._update_refill_comparison(prepared, now)
+    first = prepared["demand_forecast"]["refill_reserve_comparison"]
+    assert first["status"] == "ready"
+    assert first["verdict"] == "peak_only"
+    assert first["totals"]["ready_seconds"] == 0
+    prepared = _refill_data()
+    coordinator._update_refill_comparison(prepared, now + timedelta(seconds=30))
+    totals = prepared["demand_forecast"]["refill_reserve_comparison"]["totals"]
+    assert totals["peak_only_seconds"] == 30
+    # The source report keys stay untouched.
+    for key, value in REFILL_DEMAND.items():
+        assert prepared["demand_forecast"][key] == value
+
+
+async def test_refill_comparison_absent_without_demand_forecast(coordinator):
+    data = await coordinator._async_update_data()
+    assert "refill_reserve_comparison" not in data["demand_forecast"]
+    assert coordinator._refill_comparison.data["started_at"] is None
+
+
+async def test_refill_comparison_failure_is_isolated_and_interrupts(coordinator):
+    now = dt_util.utcnow()
+    coordinator._update_refill_comparison(_refill_data(), now)
+    prepared = _refill_data()
+    before = dict(prepared["demand_forecast"])
+    with patch(
+        "custom_components.opti_akku.coordinator.refill_reserve_check",
+        side_effect=RuntimeError("boom"),
+    ):
+        coordinator._update_refill_comparison(prepared, now + timedelta(seconds=30))
+    report = prepared["demand_forecast"]
+    assert report["refill_reserve_comparison"] == {
+        "status": "error", "informational_only": True, "controls_battery": False}
+    assert {k: v for k, v in report.items() if k != "refill_reserve_comparison"} == before
+    later = _refill_data()
+    coordinator._update_refill_comparison(later, now + timedelta(seconds=60))
+    assert later["demand_forecast"]["refill_reserve_comparison"]["totals"]["ready_seconds"] == 0
+
+
+async def test_refill_comparison_exception_does_not_break_update(coordinator):
+    _enable_demand(coordinator)
+    with patch(
+        "custom_components.opti_akku.coordinator.refill_reserve_check",
+        side_effect=RuntimeError("boom"),
+    ):
+        data = await coordinator._async_update_data()
+    assert data["demand_forecast"]["refill_reserve_comparison"]["status"] == "error"
+    assert data["mode"]
+
+
+async def test_refill_comparison_does_not_change_control(coordinator):
+    baseline = await coordinator._async_update_data()
+    _enable_demand(coordinator)
+    with_feature = await coordinator._async_update_data()
+    for key in ("mode", "reason", "decision_id", "params"):
+        assert with_feature.get(key) == baseline.get(key)
+    coordinator.device.async_apply.assert_not_awaited()
+
+
+async def test_refill_comparison_survives_stored_data_restore(coordinator, entry, hass):
+    now = dt_util.utcnow()
+    coordinator._update_refill_comparison(_refill_data(), now)
+    coordinator._update_refill_comparison(_refill_data(), now + timedelta(seconds=40))
+    snapshot = coordinator._stored_data()
+    assert snapshot["refill_reserve_comparison"]["ready_seconds"] == 40
+    restored = OptiCoordinator(
+        hass, entry, device(), await hass.async_add_executor_job(StrategyEngine)
+    )
+    with patch.object(restored._store, "async_load", AsyncMock(return_value=snapshot)):
+        await restored.async_restore()
+    assert restored._refill_comparison.data["ready_seconds"] == 40
+    legacy = {k: v for k, v in snapshot.items() if k != "refill_reserve_comparison"}
+    other = OptiCoordinator(
+        hass, entry, device(), await hass.async_add_executor_job(StrategyEngine)
+    )
+    with patch.object(other._store, "async_load", AsyncMock(return_value=legacy)):
+        await other.async_restore()
+    assert other._refill_comparison.data["ready_seconds"] == 0
+    await restored.async_stop()
+    await other.async_stop()
