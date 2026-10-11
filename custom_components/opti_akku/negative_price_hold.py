@@ -108,7 +108,9 @@ def negative_price_hold_check(
     if values["soc"] <= values["minsoc"]:
         return {**out, "status": "ready", "verdict": "min_soc"}
     reserve = _number(peak_reserve_soc)
-    if peak_reserve_active and reserve is not None and values["soc"] <= reserve:
+    if peak_reserve_active and reserve is None:
+        return {**out, "status": "data_missing", "detail": "peak_reserve"}
+    if peak_reserve_active and values["soc"] <= reserve:
         return {**out, "status": "ready", "verdict": "peak_reserve"}
     needed = values["capacity"] * max(0.0, values["maxsoc"] - values["soc"]) / 100
     out["needed_kwh"] = round(needed, 2)

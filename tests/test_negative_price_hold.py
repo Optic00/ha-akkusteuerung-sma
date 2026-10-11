@@ -87,6 +87,7 @@ def test_first_unfinished_run_wins_and_tomorrow_is_ignored():
     ({"load_w": -1}, "battery"),
     ({"pv_slots": []}, "pv_timing"),
     ({"pv_slots": pv()[:10]}, "pv_timing"),
+    ({"peak_reserve_active": True, "peak_reserve_soc": "unavailable"}, "peak_reserve"),
 ])
 def test_missing_data_is_reported(overrides, detail):
     result = check(**overrides)

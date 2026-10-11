@@ -328,14 +328,16 @@ Fensterbeginn bis Mitternacht nach Abzug der aktuellen Hauslast (60-Minuten-Wert
 und 90 % Ladewirkungsgrad mindestens das 1,2-Fache der bis zum maximalen
 Ladestand fehlenden Energie deckt. Sonst nennt das Urteil den Grund:
 `no_window`, `in_window`, `forecast_weak`, `min_soc`, `peak_reserve`, `full`
-oder `insufficient_pv`. Benötigt wird das `detailedForecast` der PV-Prognose
-für heute, ersatzweise die Solcast-Quelle aus dem Bedarfsprofil.
+oder `insufficient_pv`. Ist die Peak-Reserve aktiv, ihr Wert aber unbekannt,
+gibt es kein Urteil (`data_missing`). Benötigt wird das `detailedForecast` der
+PV-Prognose für heute, ersatzweise die Solcast-Quelle aus dem Bedarfsprofil.
 
 Unter `totals` werden zeitgewichtet summiert: Sekunden mit Urteil `hold` und im
 Fenster, die vor einem bekannten Fenster und während `hold` geladene Energie,
 sowie im Fenster geladene und eingespeiste Energie. Lücken über 90 Sekunden und
 der erste Durchlauf nach einem Neustart zählen nicht; eine geänderte
-Einspeisevergütung oder SoC-Grenze startet die Summen neu. Daraus lässt sich
+Einspeisevergütung oder SoC-Grenze startet die Summen neu. Die Summen liegen nur
+im lokalen Speicher der Integration in Home Assistant. Daraus lässt sich
 abschätzen, wie viel Ladung eine zuschaltbare Regel in das Fenster verschieben
 würde, bevor sie Schreibrechte bekommt.
 
