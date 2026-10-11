@@ -312,6 +312,35 @@ blockiert hätte. Lücken über 90 Sekunden, der erste Durchlauf nach einem Neus
 und rückwärts laufende Uhren zählen nicht. Ändert sich eine Annahme der
 Arbitrage-Anzeige oder der feste Spread, starten die Zähler neu.
 
+### Schattenvergleich Peak-Reserve gegen Refill-Reserve
+
+Bei eingeschalteter Bedarfsprognose vergleicht das Unterattribut
+`refill_reserve_comparison` der Bedarfsprognose die Haltegrenze der aktiven
+Peak-Reserve (`hold_threshold_soc`, ersatzweise `planned_reserve_soc` des
+Reserveplans) mit der Refill-Reserve `suggested_reserve_soc`. Die Refill-Reserve
+deckt den gesamten Bedarf bis zur belastbaren PV-Deckung, die Peak-Reserve nur die
+teuren Slots; beide haben also unterschiedliche Horizonte. Verglichen wird daher
+nur, ob der aktuelle SoC an der jeweiligen Grenze halten würde
+(`compares: hold_floor_only`). Das ist ein reiner Grenzvergleich: Halteband,
+Preisstufen und weitere Bedingungen der Strategie bleiben außen vor. Er zeigt also,
+wo die Grenzen auseinanderliegen, nicht welche richtig ist, und beeinflusst weder
+Modus noch Parameter, Entscheidungs-ID oder Reserve. `peak_source` nennt, welcher
+Wert als Peak-Grenze diente: `hold_threshold` gibt es nur, während die Strategie
+bei aktivem Schreiben tatsächlich hält, sonst gilt `planned_reserve`. Die Summen
+weisen beide Quellen getrennt aus. Er läuft nur bei aktiver Peak-Reserve und
+ausgereiftem Refill-Profil; sonst nennt `status` den Grund (`not_applicable`,
+`forecast_unavailable`, `profile_not_ready`, `soc_missing`, `soc_invalid`).
+
+Das Urteil lautet `both_hold`, `both_release`, `peak_only` oder `refill_only`.
+`peak_only` heißt: Nur die Peak-Reserve würde halten, die Refill-Reserve nicht.
+`refill_only` heißt: Nur die Refill-Reserve würde halten, etwa weil sie höher
+liegt als die Peak-Grenze. Unter `totals` stehen die Sekunden je Urteil, der
+mittlere Abstand `mean_difference_soc` (Peak minus Refill) und
+`disagreement_percent`. Lücken über 90 Sekunden, der erste Durchlauf nach einem
+Neustart und rückwärts laufende Uhren zählen nicht; ein Fehler im Vergleich
+unterbricht den Zeitzähler, ebenso eine ausgeschaltete Bedarfsprognose. Die
+Summen liegen nur im lokalen Speicher der Integration.
+
 ### Erwartete Energie über der AC-Grenze
 
 Die Diagnose-Entität `sensor.opti_clipping_forecast_kwh` (standardmäßig
