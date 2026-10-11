@@ -480,3 +480,195 @@ def build_arbitrage_estimate(
             )
         )
     return result
+
+
+DEFAULT_FIXED_SPREAD_CT = 10.0
+PRECHARGE_DECISION_ID = "peak_precharge"
+PRECHARGE_MAX_INTERVAL = 90
+_PRECHARGE_COUNTERS = (
+    "ready_seconds",
+    "both_allow_seconds",
+    "both_block_seconds",
+    "fixed_only_seconds",
+    "derived_only_seconds",
+    "precharge_seconds",
+    "precharge_derived_blocks_seconds",
+)
+
+
+def precharge_fixed_spread(settings: Any) -> float:
+    """Fixed spread as the strategy template reads it (default 10 ct)."""
+    value = _number(settings.get("input_number.opti_netzlade_spread_ct")) if isinstance(settings, Mapping) else None
+    return DEFAULT_FIXED_SPREAD_CT if value is None else value
+
+
+def precharge_assumptions(config: Any, settings: Any) -> list[float | None]:
+    """Fingerprint of everything the comparison depends on."""
+    source = config if isinstance(config, Mapping) else {}
+    return [_number(source.get(key)) for key in FIELDS] + [precharge_fixed_spread(settings)]
+
+
+def precharge_spread_check(
+    estimate: Any,
+    states: Any,
+    attributes: Any,
+    settings: Any,
+    decision_id: Any,
+) -> dict[str, Any]:
+    """Compare the fixed pre-charge spread with the derived price threshold.
+
+    Observation only: just the spread criterion is compared, not SOC limits or
+    the charging window. Nothing here feeds back into control.
+    """
+    base: dict[str, Any] = {
+        "compares": "spread_criterion_only",
+        "informational_only": True,
+        "controls_battery": False,
+    }
+    states = states if isinstance(states, Mapping) else {}
+    attributes = attributes if isinstance(attributes, Mapping) else {}
+    settings = settings if isinstance(settings, Mapping) else {}
+    peak_attrs = attributes.get("sensor.opti_peak_reserve_soc")
+    average = _number(peak_attrs.get("peak_preis_avg_ct")) if isinstance(peak_attrs, Mapping) else None
+    current = _number(states.get("sensor.opti_price_current_ct_kwh"))
+    allowed = settings.get("input_boolean.opti_prognose_netzladen")
+    allowed = allowed is True or allowed == "on"
+    if (
+        states.get("binary_sensor.opti_peak_reserve_aktiv") != "on"
+        or not allowed
+        or average is None
+        or current is None
+    ):
+        return {**base, "status": "not_applicable"}
+    minimum = _number(estimate.get("minimum_high_price_ct_kwh")) if isinstance(estimate, Mapping) else None
+    if not isinstance(estimate, Mapping) or estimate.get("status") != "ready" or minimum is None:
+        return {**base, "status": "estimate_unavailable"}
+    fixed = precharge_fixed_spread(settings)
+    actual = average - current
+    fixed_allows = actual >= fixed
+    derived_allows = average >= minimum
+    verdict = (
+        "both_allow" if fixed_allows and derived_allows
+        else "fixed_only" if fixed_allows
+        else "derived_only" if derived_allows
+        else "both_block"
+    )
+    return {
+        **base,
+        "status": "ready",
+        "peak_price_avg_ct": round(average, 3),
+        "current_price_ct": round(current, 3),
+        "actual_spread_ct": round(actual, 3),
+        "fixed_min_spread_ct": round(fixed, 3),
+        "derived_min_peak_price_ct": round(minimum, 3),
+        "derived_min_spread_ct": round(minimum - current, 3),
+        "fixed_allows": fixed_allows,
+        "derived_allows": derived_allows,
+        "verdict": verdict,
+        "precharge_active": decision_id == PRECHARGE_DECISION_ID,
+    }
+
+
+class PrechargeComparison:
+    """Time-weighted totals of the fixed-versus-derived pre-charge verdicts.
+
+    Zero-order hold over the previous check. Intervals over 90 s, the first
+    check after a restart and backwards clock steps never count. Changed
+    assumptions restart the totals.
+    """
+
+    def __init__(self) -> None:
+        self.data = self._fresh()
+        self._previous: tuple[datetime, dict[str, Any]] | None = None
+
+    @staticmethod
+    def _fresh() -> dict[str, Any]:
+        return {
+            "version": 1,
+            "started_at": None,
+            "last_observation": None,
+            "assumptions": None,
+            **{key: 0.0 for key in _PRECHARGE_COUNTERS},
+        }
+
+    def snapshot(self) -> dict[str, Any]:
+        return {**self.data, "assumptions": list(self.data["assumptions"]) if self.data["assumptions"] else None}
+
+    def restore(self, saved: Any) -> None:
+        self.data = self._fresh()
+        self._previous = None
+        try:
+            if not isinstance(saved, Mapping) or saved.get("version") != 1:
+                return
+            stamps: dict[str, Any] = {}
+            for key in ("started_at", "last_observation"):
+                raw = saved.get(key)
+                if raw is not None:
+                    parsed = datetime.fromisoformat(raw)
+                    if parsed.tzinfo is None:
+                        return
+                stamps[key] = raw
+            assumptions = saved.get("assumptions")
+            if assumptions is not None:
+                if (
+                    not isinstance(assumptions, list)
+                    or len(assumptions) != len(FIELDS) + 1
+                    or any(item is not None and _number(item) is None for item in assumptions)
+                ):
+                    return
+            counters = {}
+            for key in _PRECHARGE_COUNTERS:
+                value = _number(saved.get(key))
+                if value is None or value < 0:
+                    return
+                counters[key] = value
+        except (TypeError, ValueError, OverflowError, AttributeError):
+            return
+        self.data = {
+            "version": 1,
+            **stamps,
+            "assumptions": list(assumptions) if assumptions is not None else None,
+            **counters,
+        }
+
+    def _totals(self) -> dict[str, Any]:
+        out = {key: round(self.data[key], 3) for key in _PRECHARGE_COUNTERS}
+        ready = self.data["ready_seconds"]
+        out["derived_disagreement_percent"] = (
+            round(
+                (self.data["fixed_only_seconds"] + self.data["derived_only_seconds"])
+                / ready * 100,
+                3,
+            )
+            if ready > 0
+            else None
+        )
+        out["started_at"] = self.data["started_at"]
+        out["last_observation"] = self.data["last_observation"]
+        return out
+
+    def interrupt(self) -> None:
+        """A failed observation ends the held verdict; the gap never counts."""
+        self._previous = None
+
+    def observe(self, now: datetime, check: Mapping[str, Any], assumptions: list[Any]) -> dict[str, Any]:
+        if self.data["assumptions"] != assumptions:
+            self.data = self._fresh()
+            self.data["assumptions"] = list(assumptions)
+            self.data["started_at"] = now.isoformat()
+            self._previous = None
+        elif self.data["started_at"] is None:
+            self.data["started_at"] = now.isoformat()
+        if self._previous is not None:
+            before, held = self._previous
+            elapsed = (now - before).total_seconds()
+            if 0 < elapsed <= PRECHARGE_MAX_INTERVAL and held.get("status") == "ready":
+                self.data["ready_seconds"] += elapsed
+                self.data[f"{held['verdict']}_seconds"] += elapsed
+                if held.get("precharge_active"):
+                    self.data["precharge_seconds"] += elapsed
+                    if not held.get("derived_allows"):
+                        self.data["precharge_derived_blocks_seconds"] += elapsed
+        self._previous = (now, dict(check))
+        self.data["last_observation"] = now.isoformat()
+        return self._totals()

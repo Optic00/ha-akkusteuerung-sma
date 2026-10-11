@@ -292,6 +292,26 @@ Vergleich Max-SoC.
 Der Support-Export enthält hiervon nur Status und Grundcodes, keine Energiewerte,
 Zeitfenster, Profile oder Quellnamen.
 
+### Schattenvergleich der Peak-Vorladeschwelle
+
+Ist die Arbitrage-Anzeige konfiguriert und liegt ein aktueller Preis vor, vergleicht
+sie bei aktiver Peak-Reserve und erlaubtem Netzladen zusätzlich zwei Schwellen: den
+festen Netzlade-Spread (`opti_netzlade_spread_ct`, Standard 10 ct) und die aus
+Zykluskosten und Wirkungsgraden hergeleitete Mindest-Spitzenpreis-Schwelle. Das
+Attribut `precharge_comparison` nennt den aktuellen Spread, beide Schwellen und das
+Urteil `both_allow`, `both_block`, `fixed_only` oder `derived_only`. `fixed_only`
+heißt: Nur die feste Schwelle würde vorladen, die hergeleitete nicht.
+`derived_only` heißt das Gegenteil. Verglichen wird ausschließlich das
+Spread-Kriterium (`compares: spread_criterion_only`), nicht SoC-Grenzen oder
+Ladefenster. Der Vergleich beeinflusst weder Modus noch Parameter oder
+Entscheidungs-ID; die tatsächliche Vorladung folgt unverändert der festen Schwelle.
+
+Unter `totals` werden die Sekunden je Urteil zeitgewichtet summiert, dazu die
+Sekunden mit aktivem Vorladen und davon die, in denen die hergeleitete Schwelle
+blockiert hätte. Lücken über 90 Sekunden, der erste Durchlauf nach einem Neustart
+und rückwärts laufende Uhren zählen nicht. Ändert sich eine Annahme der
+Arbitrage-Anzeige oder der feste Spread, starten die Zähler neu.
+
 ### Passiver Energierestwert
 
 Wenn Bedarfsprofil und Arbitrage-Anzeige eingeschaltet sind, ergänzt die

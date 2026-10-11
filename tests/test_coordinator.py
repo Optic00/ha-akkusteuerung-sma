@@ -2906,3 +2906,110 @@ async def test_deliberately_disabled_writes_restore_without_blocker(coordinator)
     await coordinator._store.async_save({"write_enabled": False, "writer_binding": coordinator._writer_binding})
     await coordinator.async_restore()
     assert coordinator._write_restore_blocked is None
+
+
+PRECHARGE_OPTIONS = {
+    "enabled": True,
+    "battery_price_eur": 5000,
+    "degradation_percent": 20,
+    "cycles": 5000,
+    "usable_capacity_kwh": 10,
+    "charge_efficiency_percent": 90,
+    "discharge_efficiency_percent": 90,
+    "margin_ct": 2,
+}
+
+
+async def _precharge_report(coordinator, data, now, options):
+    data["states"]["binary_sensor.opti_peak_reserve_aktiv"] = "on"
+    data["states"]["sensor.opti_price_current_ct_kwh"] = "5"
+    data["attributes"]["sensor.opti_peak_reserve_soc"] = {"peak_preis_avg_ct": 18.0}
+    coordinator.settings["input_boolean.opti_prognose_netzladen"] = True
+    coordinator._update_arbitrage_report(data, now, options, {}, None)
+    return data["arbitrage_estimate"]
+
+
+async def test_precharge_comparison_is_attached_and_accumulates(coordinator):
+    data = await coordinator._async_update_data()
+    before = (data["mode"], data["reason"], data["decision_id"])
+    now = dt_util.utcnow()
+    options = {"arbitrage_estimate": PRECHARGE_OPTIONS}
+    data["states"]["sensor.opti_price_current_ct_kwh"] = "5"
+    report = await _precharge_report(coordinator, data, now, options)
+    cmp1 = report["precharge_comparison"]
+    assert cmp1["status"] == "ready"
+    assert cmp1["compares"] == "spread_criterion_only"
+    assert cmp1["verdict"] in {"both_allow", "both_block", "fixed_only", "derived_only"}
+    assert cmp1["totals"]["ready_seconds"] == 0
+    report = await _precharge_report(coordinator, data, now + timedelta(seconds=30), options)
+    assert report["precharge_comparison"]["totals"]["ready_seconds"] == 30
+    assert (data["mode"], data["reason"], data["decision_id"]) == before
+    assert report["controls_battery"] is False
+
+
+async def test_precharge_comparison_absent_without_configuration(coordinator):
+    data = await coordinator._async_update_data()
+    assert "precharge_comparison" not in data["arbitrage_estimate"]
+    now = dt_util.utcnow()
+    for options in ({}, {"arbitrage_estimate": {"enabled": True}}):
+        report = await _precharge_report(coordinator, data, now, options)
+        assert "precharge_comparison" not in report
+    assert coordinator._precharge_comparison.data["ready_seconds"] == 0
+    assert coordinator._precharge_comparison.data["started_at"] is None
+
+
+async def test_precharge_comparison_failure_keeps_the_hold_report(coordinator):
+    data = await coordinator._async_update_data()
+    now = dt_util.utcnow()
+    options = {"arbitrage_estimate": PRECHARGE_OPTIONS}
+    await _precharge_report(coordinator, data, now, options)
+    hold = {"hold_enabled": True, "hold_status": "holding", "hold_controls_battery": False}
+    with patch(
+        "custom_components.opti_akku.coordinator.precharge_spread_check",
+        side_effect=RuntimeError("boom"),
+    ):
+        coordinator._update_arbitrage_report(data, now + timedelta(seconds=30), options, hold, None)
+    report = data["arbitrage_estimate"]
+    assert report["status"] == "ready"
+    assert report["hold_status"] == "holding"
+    assert report["minimum_spread_ct_kwh"] is not None
+    assert report["precharge_comparison"] == {
+        "status": "error", "informational_only": True, "controls_battery": False}
+    report = await _precharge_report(coordinator, data, now + timedelta(seconds=60), options)
+    assert report["precharge_comparison"]["totals"]["ready_seconds"] == 0
+
+
+async def test_precharge_comparison_does_not_change_control(coordinator, entry, hass):
+    baseline = await coordinator._async_update_data()
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "arbitrage_estimate": PRECHARGE_OPTIONS}
+    )
+    with_feature = await coordinator._async_update_data()
+    for key in ("mode", "reason", "decision_id", "params"):
+        assert with_feature.get(key) == baseline.get(key)
+    coordinator.device.async_apply.assert_not_awaited()
+
+
+async def test_precharge_comparison_survives_stored_data_restore(coordinator, entry, hass):
+    data = await coordinator._async_update_data()
+    now = dt_util.utcnow()
+    options = {"arbitrage_estimate": PRECHARGE_OPTIONS}
+    await _precharge_report(coordinator, data, now, options)
+    await _precharge_report(coordinator, data, now + timedelta(seconds=40), options)
+    snapshot = coordinator._stored_data()
+    assert snapshot["precharge_comparison"]["ready_seconds"] == 40
+    restored = OptiCoordinator(
+        hass, entry, device(), await hass.async_add_executor_job(StrategyEngine)
+    )
+    with patch.object(restored._store, "async_load", AsyncMock(return_value=snapshot)):
+        await restored.async_restore()
+    assert restored._precharge_comparison.data["ready_seconds"] == 40
+    legacy = {k: v for k, v in snapshot.items() if k != "precharge_comparison"}
+    other = OptiCoordinator(
+        hass, entry, device(), await hass.async_add_executor_job(StrategyEngine)
+    )
+    with patch.object(other._store, "async_load", AsyncMock(return_value=legacy)):
+        await other.async_restore()
+    assert other._precharge_comparison.data["ready_seconds"] == 0
+    await restored.async_stop()
+    await other.async_stop()

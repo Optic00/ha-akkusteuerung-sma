@@ -9,7 +9,10 @@ from custom_components.opti_akku.arbitrage import (
     apply_discharge_hold,
     build_arbitrage_estimate,
     build_terminal_value_proxy,
+    PrechargeComparison,
     invalid_arbitrage_fields,
+    precharge_assumptions,
+    precharge_spread_check,
 )
 from custom_components.opti_akku.engine import Evaluation
 
@@ -559,3 +562,201 @@ def test_invalid_assumptions_are_named(field, value):
 def test_invalid_assumption_helper_rejects_missing_config_and_boolean():
     assert invalid_arbitrage_fields({}) == set(CONFIG) - {"enabled"}
     assert "cycles" in invalid_arbitrage_fields({**CONFIG, "cycles": True})
+
+
+# --- Peak pre-charge shadow comparison -------------------------------------
+
+READY = {"status": "ready", "minimum_high_price_ct_kwh": 20.0}
+ACTIVE = {
+    "binary_sensor.opti_peak_reserve_aktiv": "on",
+    "sensor.opti_price_current_ct_kwh": "5",
+}
+PEAK_ATTRS = {"sensor.opti_peak_reserve_soc": {"peak_preis_avg_ct": 18.0}}
+SETTINGS = {
+    "input_boolean.opti_prognose_netzladen": True,
+    "input_number.opti_netzlade_spread_ct": 10,
+}
+
+
+def check(estimate=READY, states=ACTIVE, attrs=PEAK_ATTRS, settings=SETTINGS, decision="peak_l1"):
+    return precharge_spread_check(estimate, states, attrs, settings, decision)
+
+
+@pytest.mark.parametrize(
+    ("states", "attrs", "settings"),
+    [
+        ({**ACTIVE, "binary_sensor.opti_peak_reserve_aktiv": "off"}, PEAK_ATTRS, SETTINGS),
+        (ACTIVE, PEAK_ATTRS, {**SETTINGS, "input_boolean.opti_prognose_netzladen": False}),
+        (ACTIVE, {}, SETTINGS),
+        (ACTIVE, {"sensor.opti_peak_reserve_soc": {"peak_preis_avg_ct": "nan"}}, SETTINGS),
+        ({**ACTIVE, "sensor.opti_price_current_ct_kwh": "unavailable"}, PEAK_ATTRS, SETTINGS),
+        ({**ACTIVE, "sensor.opti_price_current_ct_kwh": True}, PEAK_ATTRS, SETTINGS),
+    ],
+)
+def test_precharge_check_not_applicable(states, attrs, settings):
+    result = check(states=states, attrs=attrs, settings=settings)
+    assert result["status"] == "not_applicable"
+    assert result["compares"] == "spread_criterion_only"
+    assert result["controls_battery"] is False
+    assert "verdict" not in result
+
+
+@pytest.mark.parametrize(
+    "estimate",
+    [
+        {"status": "price_missing", "minimum_high_price_ct_kwh": None},
+        {"status": "ready", "minimum_high_price_ct_kwh": None},
+        {"status": "ready", "minimum_high_price_ct_kwh": float("inf")},
+        None,
+    ],
+)
+def test_precharge_check_estimate_unavailable(estimate):
+    result = check(estimate=estimate)
+    assert result["status"] == "estimate_unavailable"
+    assert "verdict" not in result
+
+
+@pytest.mark.parametrize(
+    ("avg", "cur", "minimum", "verdict"),
+    [
+        (30.0, 5.0, 20.0, "both_allow"),
+        (12.0, 1.0, 20.0, "fixed_only"),
+        (22.0, 15.0, 20.0, "derived_only"),
+        (10.0, 5.0, 20.0, "both_block"),
+    ],
+)
+def test_precharge_check_verdicts(avg, cur, minimum, verdict):
+    result = check(
+        estimate={"status": "ready", "minimum_high_price_ct_kwh": minimum},
+        states={**ACTIVE, "sensor.opti_price_current_ct_kwh": str(cur)},
+        attrs={"sensor.opti_peak_reserve_soc": {"peak_preis_avg_ct": avg}},
+    )
+    assert result["status"] == "ready"
+    assert result["verdict"] == verdict
+    assert result["actual_spread_ct"] == round(avg - cur, 3)
+    assert result["derived_min_spread_ct"] == round(minimum - cur, 3)
+    assert result["fixed_min_spread_ct"] == 10
+    assert result["precharge_active"] is False
+
+
+def test_precharge_check_boundaries_are_inclusive():
+    result = check(
+        estimate={"status": "ready", "minimum_high_price_ct_kwh": 15.0},
+        attrs={"sensor.opti_peak_reserve_soc": {"peak_preis_avg_ct": 15.0}},
+    )
+    assert result["fixed_allows"] is True  # spread 10 >= 10
+    assert result["derived_allows"] is True  # 15 >= 15
+    assert result["verdict"] == "both_allow"
+
+
+def test_precharge_check_flags_active_decision_and_default_spread():
+    result = check(decision="peak_precharge", settings={"input_boolean.opti_prognose_netzladen": "on"})
+    assert result["precharge_active"] is True
+    assert result["fixed_min_spread_ct"] == 10.0
+    bad = check(settings={**SETTINGS, "input_number.opti_netzlade_spread_ct": "x"})
+    assert bad["fixed_min_spread_ct"] == 10.0
+
+
+NOW = datetime(2026, 10, 10, 12, 0, tzinfo=ZoneInfo("UTC"))
+ASSUME = precharge_assumptions(CONFIG, SETTINGS)
+
+
+def ready_check(verdict="both_allow", active=False, derived=True):
+    return {"status": "ready", "verdict": verdict, "precharge_active": active, "derived_allows": derived}
+
+
+def test_precharge_assumptions_fingerprint():
+    assert ASSUME == [5000, 20, 5000, 10, 90, 90, 2, 10.0]
+    assert precharge_assumptions(None, None)[-1] == 10.0
+
+
+def test_precharge_comparison_holds_previous_check():
+    acc = PrechargeComparison()
+    first = acc.observe(NOW, ready_check("fixed_only", True, False), ASSUME)
+    assert first["ready_seconds"] == 0
+    assert first["derived_disagreement_percent"] is None
+    totals = acc.observe(NOW + timedelta(seconds=30), ready_check("both_allow"), ASSUME)
+    assert totals["fixed_only_seconds"] == 30
+    assert totals["precharge_seconds"] == 30
+    assert totals["precharge_derived_blocks_seconds"] == 30
+    totals = acc.observe(NOW + timedelta(seconds=60), {"status": "not_applicable"}, ASSUME)
+    assert totals["both_allow_seconds"] == 30
+    assert totals["ready_seconds"] == 60
+    assert totals["derived_disagreement_percent"] == 50.0
+    totals = acc.observe(NOW + timedelta(seconds=90), ready_check(), ASSUME)
+    assert totals["ready_seconds"] == 60  # held not_applicable interval adds nothing
+
+
+def test_precharge_comparison_interrupt_never_counts_the_failed_interval():
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check(), ASSUME)
+    acc.interrupt()
+    totals = acc.observe(NOW + timedelta(seconds=60), ready_check(), ASSUME)
+    assert totals["ready_seconds"] == 0
+    totals = acc.observe(NOW + timedelta(seconds=90), ready_check(), ASSUME)
+    assert totals["ready_seconds"] == 30
+
+
+def test_precharge_comparison_ignores_gaps_and_backwards_clock():
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check(), ASSUME)
+    assert acc.observe(NOW + timedelta(seconds=91), ready_check(), ASSUME)["ready_seconds"] == 0
+    assert acc.observe(NOW + timedelta(seconds=151), ready_check(), ASSUME)["ready_seconds"] == 60
+    assert acc.observe(NOW, ready_check(), ASSUME)["ready_seconds"] == 60
+    assert acc.observe(NOW + timedelta(seconds=10), ready_check(), ASSUME)["ready_seconds"] == 70
+
+
+def test_precharge_comparison_resets_on_changed_assumptions():
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check(), ASSUME)
+    acc.observe(NOW + timedelta(seconds=30), ready_check(), ASSUME)
+    later = NOW + timedelta(seconds=60)
+    totals = acc.observe(later, ready_check(), [*ASSUME[:-1], 12.0])
+    assert totals["ready_seconds"] == 0
+    assert totals["started_at"] == later.isoformat()
+    assert acc.observe(later + timedelta(seconds=10), ready_check(), [*ASSUME[:-1], 12.0])["ready_seconds"] == 10
+
+
+def test_precharge_comparison_roundtrip_skips_restart_interval():
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check("derived_only"), ASSUME)
+    acc.observe(NOW + timedelta(seconds=20), ready_check(), ASSUME)
+    saved = acc.snapshot()
+    restored = PrechargeComparison()
+    restored.restore(saved)
+    totals = restored.observe(NOW + timedelta(seconds=30), ready_check(), ASSUME)
+    assert totals["derived_only_seconds"] == 20
+    assert totals["ready_seconds"] == 20  # first check after restart has no hold
+    assert restored.observe(NOW + timedelta(seconds=40), ready_check(), ASSUME)["ready_seconds"] == 30
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda s: s.update(version=2),
+        lambda s: s.update(started_at="2026-10-10T12:00:00"),
+        lambda s: s.update(started_at="garbage"),
+        lambda s: s.update(last_observation=5),
+        lambda s: s.update(assumptions=[1, 2]),
+        lambda s: s.update(assumptions="x"),
+        lambda s: s.update(ready_seconds=-1),
+        lambda s: s.update(ready_seconds="nan"),
+        lambda s: s.pop("both_allow_seconds"),
+    ],
+)
+def test_precharge_comparison_restore_rejects_broken_data(mutate):
+    acc = PrechargeComparison()
+    acc.observe(NOW, ready_check(), ASSUME)
+    acc.observe(NOW + timedelta(seconds=10), ready_check(), ASSUME)
+    saved = acc.snapshot()
+    mutate(saved)
+    fresh = PrechargeComparison()
+    fresh.restore(saved)
+    assert fresh.snapshot() == PrechargeComparison().snapshot()
+
+
+@pytest.mark.parametrize("saved", [None, "x", 5, [], {}])
+def test_precharge_comparison_restore_survives_non_mapping(saved):
+    acc = PrechargeComparison()
+    acc.restore(saved)
+    assert acc.snapshot() == PrechargeComparison().snapshot()
