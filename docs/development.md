@@ -18,7 +18,7 @@ python tools/build_package.py
 
 Die Suite prüft unter anderem HA-Lifecycle, Konfigurationsdialoge, Migration, native Modbus-Kommunikation gegen einen lokalen Simulator, Schreibsperren, Strategie, Quellen, Prognosen und den Import eines entpackten Pakets ohne Quellcheckout. Sie ersetzt keine Geräteabnahme.
 
-Änderungen an `strategy/*.yaml` mit `python tools/build_strategy_resources.py` bauen und das JSON mit committen. Der historische Importer ist kein regulärer Buildschritt. HACS lädt das Repository-Verzeichnis; das manuelle ZIP enthält den Pfad `custom_components/opti_akku/` und ist kein aktiviertes `zip_release`-Asset.
+Änderungen an `strategy/*.yaml` mit `python tools/build_strategy_resources.py` bauen und das JSON mit committen. Der historische Importer ist kein regulärer Buildschritt. Der Paketbau erzeugt zwei ZIPs: `opti_akku-<Version>.zip` mit dem Pfad `custom_components/opti_akku/` für die manuelle Installation und `opti_akku.zip` mit denselben Dateien im Wurzelverzeichnis für HACS (`zip_release`).
 
 Die CI verhindert zusätzlich Rückschritte bei der Abdeckung einzelner Module.
 Neue Module müssen mindestens 95 Prozent erreichen. Die Typprüfung startet bewusst
@@ -50,8 +50,9 @@ Releases werden nicht nachträglich ersetzt; Korrekturen erhalten eine neue Vers
 Vor der Veröffentlichung müssen die PR-Checks und das unabhängige Review
 abgeschlossen sein. `python tools/build_package.py --tag <Release-Tag>` prüft den
 Versionsvertrag und baut ein reproduzierbares ZIP ausschließlich aus eingecheckten
-Komponentendateien. Das ZIP wird für manuelle Installationen in das HA-Konfigurationsverzeichnis
-entpackt; es enthält bereits `custom_components/opti_akku/`.
+Komponentendateien. Das versionierte ZIP wird für manuelle Installationen in das
+HA-Konfigurationsverzeichnis entpackt; es enthält bereits `custom_components/opti_akku/`.
+`opti_akku.zip` trägt in jedem Release denselben Namen, weil HACS es darüber findet.
 
 Nach dem Merge wird auf dem geprüften Commit ein annotierter Tag erstellt und gepusht,
 zum Beispiel mit `git tag -a 2026.9-beta10 -m "Opti Akku 2026.9-beta10"`. Vor dem Push
@@ -59,14 +60,16 @@ prüft `python tools/build_package.py --tag 2026.9-beta10 --check-release-ref`, 
 Manifest und Projektversion übereinstimmen, der Tag annotiert ist und auf `HEAD` zeigt.
 Der Release-Workflow führt diesen Preflight vor dem ersten Build aus, baut das ZIP
 zweimal mit identischen Bytes und erzeugt einen **Release-Entwurf samt ZIP**. Betas
-erhalten das Prerelease-Kennzeichen.
+erhalten das Prerelease-Kennzeichen. Beide ZIPs hängen am Entwurf.
 Erst nach erfolgreichem Workflow und Prüfung der Release-Notizen wird der Entwurf
 veröffentlicht. Ein erneuter Lauf ersetzt kein bestehendes Release. Nach Prüfung eines gescheiterten
 Laufs kann **Prepare release → Run workflow** auf `main` denselben bestehenden
 annotierten Tag erneut vorbereiten; der Tag wird dabei nicht verändert.
 
-HACS lädt weiterhin den Komponentenordner aus dem gewählten Tag. Das zusätzliche
-ZIP ist für manuelle Installation; `zip_release` bleibt deshalb aus.
+HACS lädt `opti_akku.zip` aus dem Release der gewählten Version (`zip_release`).
+Dadurch zählt GitHub HACS-Installationen und -Updates als Downloads dieses Assets.
+Releases ohne dieses Asset (bis 2026.10-beta5) lassen sich über HACS nicht mehr
+installieren; dafür bleibt das versionierte ZIP für die manuelle Installation.
 Anschließend Versionsauswahl und Download in HACS
 prüfen. Release-Notizen nennen HA-Mindestversion, Änderungen, bekannte Grenzen
 sowie Backup und ausgeschaltete Schreibfreigabe vor einem Update.

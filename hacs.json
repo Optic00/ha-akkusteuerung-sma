@@ -1,5 +1,7 @@
 {
   "name": "Opti Akku",
   "homeassistant": "2026.9.1",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "opti_akku.zip"
 }

@@ -1,4 +1,10 @@
-"""Build a reproducible manual-install archive from tracked integration files."""
+"""Build reproducible release archives from tracked integration files.
+
+``opti_akku-<version>.zip`` keeps ``custom_components/opti_akku/`` for manual
+installation. ``opti_akku.zip`` holds the same files at its root for HACS
+``zip_release``; HACS extracts it directly into the integration folder and
+looks it up by this constant name in every release.
+"""
 
 import argparse
 import json
@@ -10,6 +16,8 @@ import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+HACS_ASSET = "opti_akku.zip"
+PREFIX = "custom_components/opti_akku/"
 VERSION = re.compile(r"20\d{2}\.(?:[1-9]|1[0-2])(?:-beta[1-9]\d*|\.(?:0|[1-9]\d*))")
 
 
@@ -61,6 +69,8 @@ def build(output: Path, tag: str | None = None) -> Path:
         raise ValueError("Release tag must exactly match manifest version")
     if hacs.get("homeassistant") != "2026.9.1":
         raise ValueError("Unexpected Home Assistant minimum version")
+    if hacs.get("zip_release") is not True or hacs.get("filename") != HACS_ASSET:
+        raise ValueError("hacs.json must deliver the HACS release asset")
     paths = subprocess.check_output(
         ["git", "ls-files", "-z", "--", "custom_components/opti_akku"], cwd=ROOT
     ).decode().split("\0")
@@ -89,7 +99,14 @@ def build(output: Path, tag: str | None = None) -> Path:
         raise ValueError("Missing German translation sections")
     output.mkdir(parents=True, exist_ok=True)
     destination = output / f"opti_akku-{version}.zip"
-    with tempfile.TemporaryDirectory(dir=output) as staging:
+    _write_archive(destination, contents)
+    _write_archive(output / HACS_ASSET,
+                   {name.removeprefix(PREFIX): data for name, data in contents.items()})
+    return destination
+
+
+def _write_archive(destination: Path, contents: dict[str, bytes]) -> None:
+    with tempfile.TemporaryDirectory(dir=destination.parent) as staging:
         temporary = Path(staging) / "package.zip"
         with zipfile.ZipFile(temporary, "w") as archive:
             for name, data in sorted(contents.items()):
@@ -104,7 +121,6 @@ def build(output: Path, tag: str | None = None) -> Path:
             if any(archive.read(name) != data for name, data in contents.items()):
                 raise ValueError("Archive content differs from source")
         temporary.replace(destination)
-    return destination
 
 
 if __name__ == "__main__":
@@ -126,4 +142,6 @@ if __name__ == "__main__":
             parser.exit(1, f"Release preflight failed: {error}\n")
         print(f"Verified annotated release tag {args.tag} at HEAD")
     else:
-        print(build(args.output, args.tag))
+        manual = build(args.output, args.tag)
+        print(manual)
+        print(manual.parent / HACS_ASSET)

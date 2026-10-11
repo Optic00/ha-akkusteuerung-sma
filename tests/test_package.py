@@ -34,6 +34,31 @@ print('Extracted integration import and fail-safe evaluation passed')
     assert "passed" in result.stdout
 
 
+def test_hacs_asset_holds_the_component_at_its_root(tmp_path):
+    manual = build(tmp_path / "distribution")
+    hacs_asset = manual.parent / "opti_akku.zip"
+    with zipfile.ZipFile(manual) as archive:
+        manual_files = {name.removeprefix("custom_components/opti_akku/"): archive.read(name)
+                        for name in archive.namelist()}
+    install = tmp_path / "fresh_ha" / "custom_components" / "opti_akku"
+    with zipfile.ZipFile(hacs_asset) as archive:
+        names = archive.namelist()
+        assert "manifest.json" in names and "__init__.py" in names
+        assert not any(name.startswith(("custom_components/", "/")) or ".." in name for name in names)
+        assert {name: archive.read(name) for name in names} == manual_files
+        # HACS extracts the asset straight into custom_components/opti_akku.
+        archive.extractall(install)
+    script = """
+import sys
+sys.path.insert(0, sys.argv[1])
+from custom_components.opti_akku import config_flow, coordinator, sma
+print('HACS asset import passed')
+"""
+    result = subprocess.run([sys.executable, "-I", "-c", script, str(tmp_path / "fresh_ha")],
+                            capture_output=True, text=True, check=True, cwd=tmp_path / "fresh_ha")
+    assert "passed" in result.stdout
+
+
 def test_hacs_metadata_and_version():
     root = Path(__file__).resolve().parents[1]
     manifest = json.loads((root / "custom_components/opti_akku/manifest.json").read_text())
@@ -45,6 +70,7 @@ def test_hacs_metadata_and_version():
     assert f"`{version}`" in (root / "docs/development.md").read_text()
     assert manifest["config_flow"] is True
     assert hacs["homeassistant"] == "2026.9.1"
+    assert hacs["zip_release"] is True and hacs["filename"] == "opti_akku.zip"
 
 
 def test_release_version_order():
@@ -93,6 +119,7 @@ def test_release_is_reproducible(tmp_path):
     first = build(tmp_path / "a", version)
     second = build(tmp_path / "b", version)
     assert first.read_bytes() == second.read_bytes()
+    assert (tmp_path / "a/opti_akku.zip").read_bytes() == (tmp_path / "b/opti_akku.zip").read_bytes()
 
 
 def test_release_ref_must_be_annotated_and_point_at_head(tmp_path, monkeypatch):
