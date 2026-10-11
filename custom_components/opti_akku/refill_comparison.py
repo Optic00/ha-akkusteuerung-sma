@@ -26,8 +26,8 @@ _COUNTERS = ("ready_seconds", *_VERDICT_COUNTERS, *_SOURCE_COUNTERS)
 _SIGNED = ("difference_soc_seconds",)
 NOTE = (
     "The refill reserve covers the whole demand until PV cover, the peak reserve "
-    "only expensive slots. The comparison shows where decisions differ, not "
-    "which one is right."
+    "only expensive slots. This compares hold floors only, not strategy "
+    "decisions, and does not show which floor is right."
 )
 
 
