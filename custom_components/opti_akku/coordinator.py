@@ -24,7 +24,13 @@ from homeassistant.helpers import sun
 from homeassistant.util import dt as dt_util
 
 from .alerts import HealthAlerts
-from .arbitrage import apply_discharge_hold, build_arbitrage_estimate
+from .arbitrage import (
+    PrechargeComparison,
+    apply_discharge_hold,
+    build_arbitrage_estimate,
+    precharge_assumptions,
+    precharge_spread_check,
+)
 from .command_evidence import build_command_evidence
 from .device import PendingCommandError, DeviceAdapter, StaleCommandError
 from .engine import Evaluation
@@ -183,6 +189,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._load_profile = LoadProfile()
         self._score_load_profile = LoadProfile()
         self._operating_report = OperatingReport()
+        self._precharge_comparison = PrechargeComparison()
         self._demand_forecast = DemandForecast()
         self._ev_preparation = EVPreparation()
         self._source_observation = SourceObservation()
@@ -280,6 +287,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # including reloads and settings supplied through the migration wizard.
         self.settings["input_boolean.opti_manuelle_ladegrenze"] = False
         self.engine.restore(stored.get("engine", {}))
+        self._precharge_comparison.restore(stored.get("precharge_comparison"))
         self._demand_forecast.restore(stored.get("demand_forecast", {}))
         self._source_observation.restore(stored.get("source_observation", {}))
         previous_load_source = stored.get("load_source_fingerprint")
@@ -377,7 +385,8 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {"settings": dict(self.settings), "settings_revision": self._settings_revision,
                 "demand_forecast": demand,
                 "source_observation": self._source_observation.snapshot(),
-                "engine": self._engine_snapshot, "operating_report": self._operating_report.snapshot(), "load_profile": self._load_profile.snapshot(),
+                "engine": self._engine_snapshot, "operating_report": self._operating_report.snapshot(),
+                "precharge_comparison": self._precharge_comparison.snapshot(), "load_profile": self._load_profile.snapshot(),
                 "score_load_profile": self._score_load_profile.snapshot(),
                 "load_source_fingerprint": self._load_source_fingerprint,
                 "score_load_fingerprint": self._score_load_fingerprint,
@@ -1126,6 +1135,30 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 arbitrage_hold.get("hold_controls_battery") is True
                 and data["decision_id"] == "arbitrage_hold"
             )
+            if data["arbitrage_estimate"].get("status") not in (
+                "not_configured", "invalid", "strategy_disabled"
+            ):
+                # Own error boundary: the hold logic reads this report back next cycle.
+                try:
+                    check = precharge_spread_check(
+                        data["arbitrage_estimate"],
+                        data["states"],
+                        data["attributes"],
+                        self.settings,
+                        data["decision_id"],
+                    )
+                    comparison = {
+                        **check,
+                        "totals": self._precharge_comparison.observe(
+                            now, check, precharge_assumptions(arbitrage_cfg, self.settings)
+                        ),
+                    }
+                except Exception as err:  # Observation only; never affects the hold report.
+                    _LOGGER.debug("Precharge comparison unavailable: %s", type(err).__name__)
+                    self._precharge_comparison.interrupt()
+                    comparison = {"status": "error", "informational_only": True,
+                                  "controls_battery": False}
+                data["arbitrage_estimate"]["precharge_comparison"] = comparison
             data["arbitrage_estimate"].update(arbitrage_hold)
             data["arbitrage_estimate"].update(
                 hold_status=(
