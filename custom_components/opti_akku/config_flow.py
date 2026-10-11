@@ -41,7 +41,7 @@ from .const import (
     EV_SOURCE_KEYS,
     SOURCE_DEFINITIONS,
 )
-from .sma import SmaDevice, UnsupportedDeviceError
+from .sma import MODEL_NAMES, MODEL_POWER_W, SmaDevice, UnsupportedDeviceError, ac_surplus_suggestion_w
 from .device import DeviceError
 from .source_quality import measurement_max_age, reported_recently
 
@@ -178,7 +178,7 @@ def _huawei_entities(hass: Any, device_id: str, entry_id: str, domain: str = "se
 
 # The same sections power first-time setup and the editable options menu.
 SETTING_GROUPS = {
-    "battery": ["minsoc", "maxsoc", "akkusteuerung_max_ladestaerke", "akkusteuerung_max_entladestaerke", "opti_pv_ueberschuss_ladung", "opti_manuelle_ladegrenze"],
+    "battery": ["minsoc", "maxsoc", "akkusteuerung_max_ladestaerke", "akkusteuerung_max_entladestaerke", "opti_pv_ueberschuss_ladung", "akkusteuerung_wr_ac_ueberschuss_grenze", "opti_manuelle_ladegrenze"],
     "tariff": ["ladepreis", "mindestpreisdifferenz_lade_entladepreis", "opti_einspeiseverguetung_ct", "opti_netzlade_spread_ct", "opti_peak_min_aufschlag_ct", "opti_halte_spread_ct", "hausakku_aus_netz_laden"],
     "forecast": ["opti_forecast_optimismus", "opti_peak_verbrauch_kw", "opti_prognose_netzladen"],
     "ev": ["opti_ev_akku_pause"],
@@ -465,9 +465,29 @@ class WizardSections:
                 if section == "battery" and not draft.get("strategy_enabled", True):
                     next_section = "notifications"
                 return await getattr(self, "async_step_" + next_section)()
-        placeholders = self._summary() if section == "finish" else None
+        placeholders = (self._summary() if section == "finish"
+                        else self._ac_limit_placeholders() if section == "battery" else None)
         return self.async_show_form(step_id=section, data_schema=self.add_suggested_values_to_schema(self._schema(section), user_input or {}), errors=errors,
                                     description_placeholders=placeholders)
+
+    def _detected_model_id(self) -> int | None:
+        """Model of the verified SMA probe; Huawei and unknown devices have none."""
+        if self._connection.get("backend") == BACKEND_HUAWEI:
+            return None
+        if getattr(self, "_model_id", None) is not None:
+            return self._model_id
+        entry = getattr(self, "_entry", None)
+        if entry is None and getattr(self, "_shadow_source", None):
+            entry = self.hass.config_entries.async_get_entry(self._shadow_source)
+        identity = getattr(getattr(entry, "runtime_data", None), "_identity", None) or {}
+        return identity.get("model_id")
+
+    def _ac_limit_placeholders(self) -> dict[str, str]:
+        model_id = self._detected_model_id()
+        suggestion = ac_surplus_suggestion_w(model_id)
+        if suggestion is None:
+            return {"ac_limit_suggestion": "—"}
+        return {"ac_limit_suggestion": f"{suggestion} W ({MODEL_NAMES[model_id]}, {MODEL_POWER_W[model_id]} W AC)"}
 
     def _summary(self) -> dict[str, str]:
         sources = self._draft["sources"]
@@ -1082,6 +1102,7 @@ class OptiAkkuConfigFlow(WizardSections, ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(_device_unique_id(connection, probe))
             self._abort_if_unique_id_configured()
             self._connection = connection
+            self._model_id = probe.get("model_id")
             self._draft["sources"] = {key: definition[0] for key, definition in SOURCE_DEFINITIONS.items()
                                       if self.hass.states.get(definition[0]) is not None}
             price = self.hass.states.get(self._draft["sources"].get("price_current", ""))
@@ -1310,6 +1331,7 @@ class OptiAkkuOptionsFlow(WizardSections, OptionsFlow):
                     if connection != self._connection:
                         self._draft["single_writer_confirmed"] = False
                     self._connection, self._unique_id = connection, unique_id
+                    self._model_id = probe.get("model_id")
                     return await self.async_step_init()
         return self.async_show_form(step_id="connection", data_schema=_connection_schema(user_input or self._connection), errors=errors)
 

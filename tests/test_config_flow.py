@@ -69,6 +69,61 @@ async def test_complete_wizard_seeds_settings_and_never_arms(hass):
     assert result["result"].unique_id == "sma_stp_se:1234567890"
 
 
+AC_LIMIT = "input_number.akkusteuerung_wr_ac_ueberschuss_grenze"
+
+
+async def test_battery_step_suggests_ac_limit_without_applying_it(hass):
+    """The detected model only feeds the hint; the limit stays off until chosen."""
+    probe = {**PROBE, "model_id": 19051}
+    with patch("custom_components.opti_akku.config_flow._probe", AsyncMock(return_value=probe)), patch("custom_components.opti_akku.async_setup_entry", AsyncMock(return_value=True)):
+        result = await begin(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], form_values(result, {"single_inverter": True, "plant_meter_confirmed": True}))
+        assert result["step_id"] == "battery"
+        assert result["description_placeholders"] == {"ac_limit_suggestion": "9500 W (STP10.0-3SE-40, 10000 W AC)"}
+        marker = next(m for m in result["data_schema"].schema if m == "akkusteuerung_wr_ac_ueberschuss_grenze")
+        assert "suggested_value" not in (marker.description or {})
+        assert form_values(result)["akkusteuerung_wr_ac_ueberschuss_grenze"] == 0
+        result = await finish_wizard(hass, result, {"finish": {"single_writer_confirmed": True}})
+    assert result["options"]["settings"][AC_LIMIT] == 0
+
+
+async def test_battery_step_without_model_shows_no_suggestion(hass):
+    with patch("custom_components.opti_akku.config_flow._probe", AsyncMock(return_value=PROBE)):
+        result = await begin(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], form_values(result, {"single_inverter": True, "plant_meter_confirmed": True}))
+    assert result["step_id"] == "battery"
+    assert result["description_placeholders"] == {"ac_limit_suggestion": "—"}
+
+
+async def test_options_battery_step_keeps_existing_ac_limit(hass):
+    """Existing entries see the model hint but keep their stored limit."""
+    from custom_components.opti_akku.config_flow import DEFINITIONS
+    entry = MockConfigEntry(domain=DOMAIN, data=CONNECTION, options={"single_inverter": True})
+    entry.add_to_hass(hass)
+    settings = {key: definition["default"] for key, definition in DEFINITIONS.items()}
+    settings[AC_LIMIT] = 7000
+    entry.runtime_data = SimpleNamespace(settings=settings, _settings_revision=None,
+                                         _identity={"model_id": 19048})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "battery"})
+    assert result["description_placeholders"] == {"ac_limit_suggestion": "4500 W (STP5.0-3SE-40, 5000 W AC)"}
+    values = form_values(result)
+    assert values["akkusteuerung_wr_ac_ueberschuss_grenze"] == 7000
+    result = await hass.config_entries.options.async_configure(result["flow_id"], values)
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_huawei_battery_step_has_no_model_suggestion(hass):
+    from custom_components.opti_akku.config_flow import OptiAkkuOptionsFlow
+    entry = MockConfigEntry(domain=DOMAIN, data={"backend": "huawei_solar", "huawei_device_id": "d"})
+    flow = OptiAkkuOptionsFlow(entry)
+    flow._model_id = 19051
+    assert flow._ac_limit_placeholders() == {"ac_limit_suggestion": "—"}
+
+
 async def test_shadow_default_and_no_writer_field(hass):
     connection = {k: v for k, v in CONNECTION.items() if k != "shadow_mode"}
     with patch("custom_components.opti_akku.config_flow._probe", AsyncMock(return_value=PROBE)), patch("custom_components.opti_akku.async_setup_entry", AsyncMock(return_value=True)):
