@@ -69,7 +69,9 @@ def build(output: Path, tag: str | None = None) -> Path:
         raise ValueError("Release tag must exactly match manifest version")
     if hacs.get("homeassistant") != "2026.9.1":
         raise ValueError("Unexpected Home Assistant minimum version")
-    if hacs.get("zip_release") is not True or hacs.get("filename") != HACS_ASSET:
+    # HACS also fetches the asset for a selected branch, where none exists.
+    if (hacs.get("zip_release") is not True or hacs.get("filename") != HACS_ASSET
+            or hacs.get("hide_default_branch") is not True):
         raise ValueError("hacs.json must deliver the HACS release asset")
     paths = subprocess.check_output(
         ["git", "ls-files", "-z", "--", "custom_components/opti_akku"], cwd=ROOT

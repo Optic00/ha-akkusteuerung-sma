@@ -71,6 +71,8 @@ def test_hacs_metadata_and_version():
     assert manifest["config_flow"] is True
     assert hacs["homeassistant"] == "2026.9.1"
     assert hacs["zip_release"] is True and hacs["filename"] == "opti_akku.zip"
+    # With zip_release HACS would request a release asset for the branch too.
+    assert hacs["hide_default_branch"] is True
 
 
 def test_release_version_order():

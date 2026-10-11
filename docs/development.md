@@ -66,10 +66,12 @@ veröffentlicht. Ein erneuter Lauf ersetzt kein bestehendes Release. Nach Prüfu
 Laufs kann **Prepare release → Run workflow** auf `main` denselben bestehenden
 annotierten Tag erneut vorbereiten; der Tag wird dabei nicht verändert.
 
-HACS lädt `opti_akku.zip` aus dem Release der gewählten Version (`zip_release`).
-Dadurch zählt GitHub HACS-Installationen und -Updates als Downloads dieses Assets.
-Releases ohne dieses Asset (bis 2026.10-beta5) lassen sich über HACS nicht mehr
-installieren; dafür bleibt das versionierte ZIP für die manuelle Installation.
+HACS liest `hacs.json` aus dem Tag der gewählten Version. Ab dem ersten Tag mit
+`zip_release` lädt HACS `opti_akku.zip` aus dem Release; GitHub zählt Installationen
+und Updates dann als Downloads dieses Assets, nicht als eindeutige Nutzer. Ältere
+Tags ohne `zip_release` installiert HACS weiterhin aus dem Repository-Inhalt. Weil
+HACS mit `zip_release` auch für einen ausgewählten Branch ein Release-Asset sucht,
+blendet `hide_default_branch` die Installation von `main` aus.
 Anschließend Versionsauswahl und Download in HACS
 prüfen. Release-Notizen nennen HA-Mindestversion, Änderungen, bekannte Grenzen
 sowie Backup und ausgeschaltete Schreibfreigabe vor einem Update.
