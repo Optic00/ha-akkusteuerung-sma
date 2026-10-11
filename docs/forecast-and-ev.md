@@ -319,7 +319,9 @@ deaktiviert) schätzt, wie viel PV-Energie heute noch oberhalb der
 AC-Überschussgrenze anfällt. Grundlage ist das `detailedForecast` der
 PV-Prognose für heute, ersatzweise der Solcast-Quelle aus dem Bedarfsprofil.
 Je Halbstunde zählt der Anteil über der Grenze; der Zustand ist P50 ab jetzt,
-P10, P90 und der ganze Tag stehen in den Attributen. Dazu kommen freie
+P10, P90 und der ganze Tag stehen in den Attributen. Die P10- und P90-Werte
+sind Summen der Halbstunden-Perzentile, keine Perzentile der Tagesenergie, und
+zeigen daher nur eine grobe Spannweite. Dazu kommen freie
 Kapazität bis zum maximalen Ladestand und die rechnerische Lücke
 (`reserve_shortfall_kwh`). Ohne gesetzte Grenze bleibt der Wert `unavailable`
 mit Status `not_configured`.
