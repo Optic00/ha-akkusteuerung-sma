@@ -340,6 +340,56 @@ mittlere Abstand `mean_difference_soc` (Peak minus Refill) und
 Neustart und rückwärts laufende Uhren zählen nicht; ein Fehler im Vergleich
 unterbricht den Zeitzähler.
 
+### Erwartete Energie über der AC-Grenze
+
+Die Diagnose-Entität `sensor.opti_clipping_forecast_kwh` (standardmäßig
+deaktiviert) schätzt, wie viel PV-Energie heute noch oberhalb der
+AC-Überschussgrenze anfällt. Grundlage ist das `detailedForecast` der
+PV-Prognose für heute, ersatzweise der Solcast-Quelle aus dem Bedarfsprofil.
+Je Halbstunde zählt der Anteil über der Grenze; der Zustand ist P50 ab jetzt,
+P10, P90 und der ganze Tag stehen in den Attributen. Die P10- und P90-Werte
+sind Summen der Halbstunden-Perzentile, keine Perzentile der Tagesenergie, und
+zeigen daher nur eine grobe Spannweite. Dazu kommen freie
+Kapazität bis zum maximalen Ladestand und die rechnerische Lücke
+(`reserve_shortfall_kwh`). Ohne gesetzte Grenze bleibt der Wert `unavailable`
+mit Status `not_configured`.
+
+Solcast rechnet mit der im Solcast-Konto hinterlegten AC-Leistung. Ist dort die
+Wechselrichterleistung eingetragen, ist die Prognose bereits gekappt und die
+Schätzung zu niedrig; mehrere Halbstunden auf demselben Spitzenwert setzen dann
+`forecast_capped_suspected`. Die Schätzung steuert nichts. Sie dient als
+Datengrundlage für eine spätere, abschaltbare Ladeführung vor der Mittagsspitze
+(#137).
+
+### Schattenvergleich: PV-Ladung bis zum Preisfenster zurückhalten
+
+Die Diagnose-Entität `sensor.opti_negative_price_hold` (standardmäßig
+deaktiviert) prüft in jedem Zyklus, ob es sich lohnen würde, PV-Ladung bis zu
+einem Preisfenster unter der Einspeisevergütung am selben Tag zurückzuhalten
+(#136). Sie steuert nichts; die bestehende Netzlade-Regel bei schlechter
+Prognose bleibt unverändert.
+
+Das Fenster ist der erste noch nicht beendete zusammenhängende Zeitraum heute
+mit einem Preis unter `opti_einspeiseverguetung_ct`. Vor dem Fenster lautet das
+Urteil `hold`, wenn der Prognose-Score mindestens 3 beträgt, der Ladestand über
+dem Mindest-SoC und einer aktiven Peak-Reserve liegt und der P10-Überschuss ab
+Fensterbeginn bis Mitternacht nach Abzug der aktuellen Hauslast (60-Minuten-Wert)
+und 90 % Ladewirkungsgrad mindestens das 1,2-Fache der bis zum maximalen
+Ladestand fehlenden Energie deckt. Sonst nennt das Urteil den Grund:
+`no_window`, `in_window`, `forecast_weak`, `min_soc`, `peak_reserve`, `full`
+oder `insufficient_pv`. Ist die Peak-Reserve aktiv, ihr Wert aber unbekannt,
+gibt es kein Urteil (`data_missing`). Benötigt wird das `detailedForecast` der
+PV-Prognose für heute, ersatzweise die Solcast-Quelle aus dem Bedarfsprofil.
+
+Unter `totals` werden zeitgewichtet summiert: Sekunden mit Urteil `hold` und im
+Fenster, die vor einem bekannten Fenster und während `hold` geladene Energie,
+sowie im Fenster geladene und eingespeiste Energie. Lücken über 90 Sekunden und
+der erste Durchlauf nach einem Neustart zählen nicht; eine geänderte
+Einspeisevergütung oder SoC-Grenze startet die Summen neu. Die Summen liegen nur
+im lokalen Speicher der Integration in Home Assistant. Daraus lässt sich
+abschätzen, wie viel Ladung eine zuschaltbare Regel in das Fenster verschieben
+würde, bevor sie Schreibrechte bekommt.
+
 ### Passiver Energierestwert
 
 Wenn Bedarfsprofil und Arbitrage-Anzeige eingeschaltet sind, ergänzt die
