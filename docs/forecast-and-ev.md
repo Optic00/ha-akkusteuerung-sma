@@ -312,6 +312,33 @@ blockiert hätte. Lücken über 90 Sekunden, der erste Durchlauf nach einem Neus
 und rückwärts laufende Uhren zählen nicht. Ändert sich eine Annahme der
 Arbitrage-Anzeige oder der feste Spread, starten die Zähler neu.
 
+### Schattenvergleich: PV-Ladung bis zum Preisfenster zurückhalten
+
+Die Diagnose-Entität `sensor.opti_negative_price_hold` (standardmäßig
+deaktiviert) prüft in jedem Zyklus, ob es sich lohnen würde, PV-Ladung bis zu
+einem Preisfenster unter der Einspeisevergütung am selben Tag zurückzuhalten
+(#136). Sie steuert nichts; die bestehende Netzlade-Regel bei schlechter
+Prognose bleibt unverändert.
+
+Das Fenster ist der erste noch nicht beendete zusammenhängende Zeitraum heute
+mit einem Preis unter `opti_einspeiseverguetung_ct`. Vor dem Fenster lautet das
+Urteil `hold`, wenn der Prognose-Score mindestens 3 beträgt, der Ladestand über
+dem Mindest-SoC und einer aktiven Peak-Reserve liegt und der P10-Überschuss ab
+Fensterbeginn bis Mitternacht nach Abzug der aktuellen Hauslast (60-Minuten-Wert)
+und 90 % Ladewirkungsgrad mindestens das 1,2-Fache der bis zum maximalen
+Ladestand fehlenden Energie deckt. Sonst nennt das Urteil den Grund:
+`no_window`, `in_window`, `forecast_weak`, `min_soc`, `peak_reserve`, `full`
+oder `insufficient_pv`. Benötigt wird das `detailedForecast` der PV-Prognose
+für heute, ersatzweise die Solcast-Quelle aus dem Bedarfsprofil.
+
+Unter `totals` werden zeitgewichtet summiert: Sekunden mit Urteil `hold` und im
+Fenster, die vor einem bekannten Fenster und während `hold` geladene Energie,
+sowie im Fenster geladene und eingespeiste Energie. Lücken über 90 Sekunden und
+der erste Durchlauf nach einem Neustart zählen nicht; eine geänderte
+Einspeisevergütung oder SoC-Grenze startet die Summen neu. Daraus lässt sich
+abschätzen, wie viel Ladung eine zuschaltbare Regel in das Fenster verschieben
+würde, bevor sie Schreibrechte bekommt.
+
 ### Passiver Energierestwert
 
 Wenn Bedarfsprofil und Arbitrage-Anzeige eingeschaltet sind, ergänzt die

@@ -3013,3 +3013,23 @@ async def test_precharge_comparison_survives_stored_data_restore(coordinator, en
     assert other._precharge_comparison.data["ready_seconds"] == 0
     await restored.async_stop()
     await other.async_stop()
+
+
+async def test_negative_price_hold_is_published_as_observation(coordinator):
+    data = await coordinator._async_update_data()
+    attrs = data["attributes"]["sensor.opti_negative_price_hold"]
+    assert data["states"]["sensor.opti_negative_price_hold"] == "unavailable"
+    assert attrs["status"] == "data_missing" and attrs["detail"] == "price_series"
+    assert attrs["controls_battery"] is False
+    assert "totals" in attrs
+    assert coordinator._stored_data()["negative_price_hold"]["version"] == 1
+    coordinator.device.async_apply.assert_not_awaited()
+
+
+async def test_negative_price_hold_error_never_stops_the_update(coordinator):
+    with patch("custom_components.opti_akku.coordinator.negative_price_hold_check",
+               side_effect=RuntimeError("boom")):
+        data = await coordinator._async_update_data()
+    assert data["states"]["sensor.opti_negative_price_hold"] == "unavailable"
+    assert data["attributes"]["sensor.opti_negative_price_hold"]["status"] == "error"
+    assert data["mode"] == "Akku Pause"
