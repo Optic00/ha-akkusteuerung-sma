@@ -1089,7 +1089,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 **data["demand_forecast"], "strategy_comparison": comparison
             }
         self._update_negative_price_hold(
-            data, now, captured_options.get("sources", {}).get("forecast_today") or demand_sources.get("pv_today"))
+            data, now, (captured_options.get("sources", {}).get("forecast_today"), demand_sources.get("pv_today")))
         self._update_arbitrage_report(data, now, captured_options, arbitrage_hold, safety_reason)
         await self._async_update_observations(data, now, captured_options)
         self._store.async_delay_save(self._stored_data, 5)
@@ -1106,11 +1106,17 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data["reserve_plan"] = {"status": "no_valid_plan"}
             data["operating_report"] = {"status": "error", "error_type": type(err).__name__}
 
-    def _update_negative_price_hold(self, data, now, forecast_entity):
+    def _update_negative_price_hold(self, data, now, forecast_entities):
         """Shadow check for #136; runs after the decision and never changes it."""
         key = "sensor.opti_negative_price_hold"
         states, attributes = data["states"], data["attributes"]
         try:
+            # A daily-total forecast source has no intervals; try the demand Solcast source next.
+            forecast_entity, pv_slots = None, []
+            for candidate in forecast_entities:
+                if candidate and (pv_slots := pv_intervals(self.hass.states, {"pv_today": candidate}, now)):
+                    forecast_entity = candidate
+                    break
             load = states.get("sensor.opti_house_consumption_60min_w")
             if finite(load) is None:
                 load = states.get("sensor.opti_house_consumption_w")
@@ -1118,7 +1124,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 now=now, timezone=dt_util.DEFAULT_TIME_ZONE,
                 price_series=attributes.get("sensor.opti_price_series"),
                 feed_in_ct=self.settings.get("input_number.opti_einspeiseverguetung_ct"),
-                pv_slots=pv_intervals(self.hass.states, {"pv_today": forecast_entity}, now) if forecast_entity else [],
+                pv_slots=pv_slots,
                 load_w=load, score=states.get("sensor.opti_forecast_score"),
                 soc=states.get("sensor.opti_soc"), capacity_kwh=states.get("sensor.opti_battery_capacity_kwh"),
                 minsoc=self.settings.get("input_number.minsoc"), maxsoc=self.settings.get("input_number.maxsoc"),

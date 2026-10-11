@@ -3033,3 +3033,26 @@ async def test_negative_price_hold_error_never_stops_the_update(coordinator):
     assert data["states"]["sensor.opti_negative_price_hold"] == "unavailable"
     assert data["attributes"]["sensor.opti_negative_price_hold"]["status"] == "error"
     assert data["mode"] == "Akku Pause"
+
+
+async def test_negative_price_hold_falls_back_to_demand_solcast_intervals(coordinator, hass, entry):
+    now = dt_util.utcnow()
+    start = now.replace(minute=0, second=0, microsecond=0)
+    detail = [{"period_start": (start + timedelta(minutes=30 * i)).isoformat(),
+               "pv_estimate": 5.0, "pv_estimate10": 4.0, "pv_estimate90": 6.0} for i in range(4)]
+    hass.states.async_set("sensor.daily_total", "40", {})
+    hass.states.async_set("sensor.solcast_demand", "40", {"detailedForecast": detail})
+    hass.config_entries.async_update_entry(entry, options={
+        **entry.options, "sources": {"forecast_today": "sensor.daily_total"},
+        "demand_forecast": {"enabled": True, "sources": {"pv_today": "sensor.solcast_demand"}}})
+    captured = {}
+
+    def fake_check(**kwargs):
+        captured.update(kwargs)
+        return {"status": "ready", "verdict": "no_window"}
+
+    with patch("custom_components.opti_akku.coordinator.negative_price_hold_check", side_effect=fake_check):
+        data = await coordinator._async_update_data()
+    assert data["attributes"]["sensor.opti_negative_price_hold"]["source"] == "sensor.solcast_demand"
+    assert [watts for _, watts in captured["pv_slots"]][-1] == 4000
+    assert data["states"]["sensor.opti_negative_price_hold"] == "no_window"
