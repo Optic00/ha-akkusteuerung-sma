@@ -69,6 +69,18 @@ def test_not_applicable():
 def test_planned_reserve_is_fallback_for_missing_hold_threshold():
     result = check(plan={"planned_reserve_soc": 50.0, "hold_threshold_soc": None})
     assert result["peak_hold_soc"] == 50.0
+    assert result["peak_source"] == "planned_reserve"
+    assert check()["peak_source"] == "hold_threshold"
+
+
+def test_totals_keep_peak_sources_apart():
+    acc = RefillReserveComparison()
+    acc.observe(T0, check())
+    acc.observe(T0 + timedelta(seconds=30), check(plan={"planned_reserve_soc": 50.0}))
+    totals = acc.observe(T0 + timedelta(seconds=50), check())
+    assert totals["hold_threshold_seconds"] == 30
+    assert totals["planned_reserve_seconds"] == 20
+    assert totals["ready_seconds"] == 50
 
 
 def test_forecast_unavailable_and_profile():
@@ -150,6 +162,8 @@ def test_snapshot_restore_roundtrip_and_broken_input():
         {**acc.snapshot(), "started_at": "2026-10-01T22:00:00"},
         {**acc.snapshot(), "difference_soc_seconds": None},
         {**acc.snapshot(), "last_observation": 5},
+        {**acc.snapshot(), "peak_only_seconds": 100.0},
+        {**acc.snapshot(), "hold_threshold_seconds": 0.0, "planned_reserve_seconds": 5.0},
     ):
         fresh = RefillReserveComparison()
         fresh.restore(broken)

@@ -12,13 +12,17 @@ from typing import Any
 
 MAX_INTERVAL = 90
 VERDICTS = ("both_hold", "both_release", "peak_only", "refill_only")
-_COUNTERS = (
-    "ready_seconds",
+_VERDICT_COUNTERS = (
     "both_hold_seconds",
     "both_release_seconds",
     "peak_only_seconds",
     "refill_only_seconds",
 )
+# Which strategy value served as the peak floor; both are counted separately so
+# mixed totals stay visible (hold threshold only exists while actively holding).
+PEAK_SOURCES = ("hold_threshold", "planned_reserve")
+_SOURCE_COUNTERS = tuple(f"{source}_seconds" for source in PEAK_SOURCES)
+_COUNTERS = ("ready_seconds", *_VERDICT_COUNTERS, *_SOURCE_COUNTERS)
 _SIGNED = ("difference_soc_seconds",)
 NOTE = (
     "The refill reserve covers the whole demand until PV cover, the peak reserve "
@@ -51,6 +55,7 @@ def refill_reserve_check(demand: Any, plan: Any, states: Any) -> dict[str, Any]:
     planned = _number(plan.get("planned_reserve_soc"))
     hold = _number(plan.get("hold_threshold_soc"))
     peak = hold if hold is not None else planned
+    source = "hold_threshold" if hold is not None else "planned_reserve"
     if states.get("binary_sensor.opti_peak_reserve_aktiv") != "on" or peak is None:
         return {**base, "status": "not_applicable"}
     refill = _number(demand.get("suggested_reserve_soc"))
@@ -78,6 +83,7 @@ def refill_reserve_check(demand: Any, plan: Any, states: Any) -> dict[str, Any]:
         "status": "ready",
         "soc": round(soc, 3),
         "peak_hold_soc": round(peak, 3),
+        "peak_source": source,
         "planned_reserve_soc": round(planned, 3) if planned is not None else None,
         "refill_reserve_soc": round(refill, 3),
         "difference_soc": round(difference, 3),
@@ -135,6 +141,11 @@ class RefillReserveComparison:
                 if value is None or (key in _COUNTERS and value < 0):
                     return
                 counters[key] = value
+            ready = counters["ready_seconds"]
+            tolerance = 1e-6 * max(1.0, ready)
+            if (abs(sum(counters[key] for key in _VERDICT_COUNTERS) - ready) > tolerance
+                    or abs(sum(counters[key] for key in _SOURCE_COUNTERS) - ready) > tolerance):
+                return
         except (TypeError, ValueError, OverflowError, AttributeError):
             return
         self.data = {"version": 1, **stamps, **counters}
@@ -166,6 +177,7 @@ class RefillReserveComparison:
             if 0 < elapsed <= MAX_INTERVAL and held.get("status") == "ready":
                 self.data["ready_seconds"] += elapsed
                 self.data[f"{held['verdict']}_seconds"] += elapsed
+                self.data[f"{held['peak_source']}_seconds"] += elapsed
                 self.data["difference_soc_seconds"] += elapsed * held["difference_soc"]
         self._previous = (now, dict(check))
         self.data["last_observation"] = now.isoformat()
