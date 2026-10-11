@@ -312,6 +312,25 @@ blockiert hätte. Lücken über 90 Sekunden, der erste Durchlauf nach einem Neus
 und rückwärts laufende Uhren zählen nicht. Ändert sich eine Annahme der
 Arbitrage-Anzeige oder der feste Spread, starten die Zähler neu.
 
+### Erwartete Energie über der AC-Grenze
+
+Die Diagnose-Entität `sensor.opti_clipping_forecast_kwh` (standardmäßig
+deaktiviert) schätzt, wie viel PV-Energie heute noch oberhalb der
+AC-Überschussgrenze anfällt. Grundlage ist das `detailedForecast` der
+PV-Prognose für heute, ersatzweise der Solcast-Quelle aus dem Bedarfsprofil.
+Je Halbstunde zählt der Anteil über der Grenze; der Zustand ist P50 ab jetzt,
+P10, P90 und der ganze Tag stehen in den Attributen. Dazu kommen freie
+Kapazität bis zum maximalen Ladestand und die rechnerische Lücke
+(`reserve_shortfall_kwh`). Ohne gesetzte Grenze bleibt der Wert `unavailable`
+mit Status `not_configured`.
+
+Solcast rechnet mit der im Solcast-Konto hinterlegten AC-Leistung. Ist dort die
+Wechselrichterleistung eingetragen, ist die Prognose bereits gekappt und die
+Schätzung zu niedrig; mehrere Halbstunden auf demselben Spitzenwert setzen dann
+`forecast_capped_suspected`. Die Schätzung steuert nichts. Sie dient als
+Datengrundlage für eine spätere, abschaltbare Ladeführung vor der Mittagsspitze
+(#137).
+
 ### Passiver Energierestwert
 
 Wenn Bedarfsprofil und Arbitrage-Anzeige eingeschaltet sind, ergänzt die
