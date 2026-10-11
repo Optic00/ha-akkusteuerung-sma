@@ -46,6 +46,7 @@ from .definitions import NUMBER_DEFINITIONS, SWITCH_DEFINITIONS
 from .sources import build_inputs, finite
 from .plant import plant_entity_ids, plant_semantic_fingerprint
 from .load_profile import LoadProfile
+from .clipping import clipping_forecast
 from .negative_price_hold import NegativePriceHoldShadow, negative_price_hold_check
 from .demand import EV_SCOPE_VERSION, DemandForecast, pv_intervals, ev_profile_sources, ev_profile_scope, profile_house_value
 from .demand_comparison import build_strategy_comparison, remaining_day_profile
@@ -82,6 +83,7 @@ def _build_metadata(engine: Any) -> dict:
         "sensor.opti_battery_temp": {"name": "Batterietemperatur", "unit_of_measurement": "°C", "device_class": "temperature", "state_class": "measurement"},
         "sensor.opti_battery_capacity_kwh": {"name": "Batteriekapazität", "unit_of_measurement": "kWh", "device_class": "energy_storage", "state_class": "measurement"},
         "sensor.opti_forecast_remaining_load_profile_kwh": {"name": "Verbrauchsprofil Resttag", "unit_of_measurement": "kWh", "state_class": "measurement"},
+        "sensor.opti_clipping_forecast_kwh": {"name": "Erwartete Energie über AC-Grenze", "unit_of_measurement": "kWh", "state_class": "measurement"},
         "sensor.opti_negative_price_hold": {"name": "Schattenvergleich PV-Ladung bis Preisfenster"},
         "binary_sensor.opti_connection": {"name": "Verbindung", "device_class": "connectivity"},
         "binary_sensor.opti_block_violation": {"name": "Sperrverletzung", "device_class": "problem"},
@@ -824,6 +826,29 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             peak_profile = {"status": "fallback", "hours": {}, "methods": {}, "reason": "profile_error"}
         states["sensor.opti_peak_load_profile"] = peak_profile["status"]
         attributes["sensor.opti_peak_load_profile"] = peak_profile
+        # Observation only: the strategy never reads this estimate. A daily-total
+        # forecast source has no intervals; the demand Solcast source is tried next.
+        candidates = [entity for entity in (captured_options.get("sources", {}).get("forecast_today"),
+                                            demand_sources.get("pv_today")) if entity] or [None]
+        forecast_entity = None
+        try:
+            for forecast_entity in candidates:
+                clipping_value, clipping_attributes = clipping_forecast(
+                    self.hass.states.get(forecast_entity) if forecast_entity else None,
+                    self.settings.get("input_number.akkusteuerung_wr_ac_ueberschuss_grenze"),
+                    now, dt_util.DEFAULT_TIME_ZONE,
+                    soc=states.get("sensor.opti_soc"),
+                    capacity_kwh=states.get("sensor.opti_battery_capacity_kwh"),
+                    maxsoc=self.settings.get("input_number.maxsoc"),
+                    max_age=captured_options.get("forecast_max_age", 21600),
+                )
+                if clipping_attributes.get("status") not in ("no_forecast", "no_detail"):
+                    break
+        except Exception as err:  # A diagnostic estimate must never stop the update.
+            _LOGGER.debug("Clipping forecast unavailable: %s", type(err).__name__)
+            clipping_value, clipping_attributes = "unavailable", {"status": "error", "observation_only": True}
+        states["sensor.opti_clipping_forecast_kwh"] = clipping_value
+        attributes["sensor.opti_clipping_forecast_kwh"] = {"source": forecast_entity, **clipping_attributes}
         ev_cfg = captured_options.get("ev_preparation", {})
         ev_signals = command_signals(
             ev_cfg, self.hass.states, now, dt_util.DEFAULT_TIME_ZONE
