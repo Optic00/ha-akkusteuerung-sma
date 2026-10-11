@@ -3059,3 +3059,21 @@ async def test_clipping_forecast_error_never_stops_the_update(coordinator):
     assert data["states"]["sensor.opti_clipping_forecast_kwh"] == "unavailable"
     assert data["attributes"]["sensor.opti_clipping_forecast_kwh"]["status"] == "error"
     assert data["mode"] == "Akku Pause"
+
+
+async def test_clipping_forecast_skips_daily_total_without_intervals(coordinator, hass, entry):
+    today = dt_util.now().date()
+    noon = datetime(today.year, today.month, today.day, 12, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    detail = [{"period_start": noon.isoformat(), "pv_estimate": 10.0,
+               "pv_estimate10": 10.0, "pv_estimate90": 10.0}]
+    hass.states.async_set("sensor.daily_total", "40", {})
+    hass.states.async_set("sensor.solcast_demand", "40", {"detailedForecast": detail})
+    hass.config_entries.async_update_entry(entry, options={
+        **entry.options, "sources": {"forecast_today": "sensor.daily_total"},
+        "demand_forecast": {"enabled": True, "sources": {"pv_today": "sensor.solcast_demand"}}})
+    coordinator.settings["input_number.akkusteuerung_wr_ac_ueberschuss_grenze"] = 9500
+    data = await coordinator._async_update_data()
+    attrs = data["attributes"]["sensor.opti_clipping_forecast_kwh"]
+    assert attrs["source"] == "sensor.solcast_demand"
+    assert attrs["status"] == "ready"
+    assert attrs["day_p50_kwh"] == 0.25

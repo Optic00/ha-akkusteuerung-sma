@@ -821,19 +821,24 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             peak_profile = {"status": "fallback", "hours": {}, "methods": {}, "reason": "profile_error"}
         states["sensor.opti_peak_load_profile"] = peak_profile["status"]
         attributes["sensor.opti_peak_load_profile"] = peak_profile
-        # Observation only: the strategy never reads this estimate.
-        forecast_entity = (captured_options.get("sources", {}).get("forecast_today")
-                           or demand_sources.get("pv_today"))
+        # Observation only: the strategy never reads this estimate. A daily-total
+        # forecast source has no intervals; the demand Solcast source is tried next.
+        candidates = [entity for entity in (captured_options.get("sources", {}).get("forecast_today"),
+                                            demand_sources.get("pv_today")) if entity] or [None]
+        forecast_entity = None
         try:
-            clipping_value, clipping_attributes = clipping_forecast(
-                self.hass.states.get(forecast_entity) if forecast_entity else None,
-                self.settings.get("input_number.akkusteuerung_wr_ac_ueberschuss_grenze"),
-                now, dt_util.DEFAULT_TIME_ZONE,
-                soc=states.get("sensor.opti_soc"),
-                capacity_kwh=states.get("sensor.opti_battery_capacity_kwh"),
-                maxsoc=self.settings.get("input_number.maxsoc"),
-                max_age=captured_options.get("forecast_max_age", 21600),
-            )
+            for forecast_entity in candidates:
+                clipping_value, clipping_attributes = clipping_forecast(
+                    self.hass.states.get(forecast_entity) if forecast_entity else None,
+                    self.settings.get("input_number.akkusteuerung_wr_ac_ueberschuss_grenze"),
+                    now, dt_util.DEFAULT_TIME_ZONE,
+                    soc=states.get("sensor.opti_soc"),
+                    capacity_kwh=states.get("sensor.opti_battery_capacity_kwh"),
+                    maxsoc=self.settings.get("input_number.maxsoc"),
+                    max_age=captured_options.get("forecast_max_age", 21600),
+                )
+                if clipping_attributes.get("status") not in ("no_forecast", "no_detail"):
+                    break
         except Exception as err:  # A diagnostic estimate must never stop the update.
             _LOGGER.debug("Clipping forecast unavailable: %s", type(err).__name__)
             clipping_value, clipping_attributes = "unavailable", {"status": "error", "observation_only": True}
