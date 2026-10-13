@@ -115,6 +115,15 @@ def _sources_schema(defaults: dict[str, Any], section: str, *, shadow_mode: bool
             vol.Any(0, vol.Range(min=1)),  # Never round a positive fraction to the zero opt-in.
             vol.Coerce(int),
         )
+        # Optional: smoothed house sources may legitimately stay unchanged longer.
+        house_age = defaults.get("house_consumption_max_age")
+        marker = (vol.Optional("house_consumption_max_age", description={"suggested_value": house_age})
+                  if house_age is not None else vol.Optional("house_consumption_max_age"))
+        schema[marker] = vol.All(
+            NumberSelector(NumberSelectorConfig(min=0, max=86400, mode=NumberSelectorMode.BOX)),
+            vol.Any(0, vol.Range(min=1)),
+            vol.Coerce(int),
+        )
         schema[vol.Required("single_inverter", default=defaults.get("single_inverter", False))] = BooleanSelector()
     elif section == "tariff":
         schema[vol.Required("price_unit", default=defaults.get("price_unit", "EUR/kWh"))] = SelectSelector(
@@ -191,7 +200,7 @@ SOURCE_GROUPS = {"sources": ["house_consumption", "pv_generation", "pv_power"],
                  "tariff": ["price_current", "price_series"],
                  "forecast": ["forecast_today", "forecast_tomorrow", "forecast_remaining"],
                  "ev": list(EV_SOURCE_KEYS), "balancing": ["cell_spread"]}
-OPTION_GROUPS = {"sources": ["source_max_age", "strategy_enabled", "single_inverter", "plant_mode", "additional_ac_sources", "excluded_load_sources", "event_based_excluded_sources", "plant_meter_confirmed", "forecast_min_load_w"], "tariff": ["price_unit", "price_provider"],
+OPTION_GROUPS = {"sources": ["source_max_age", "house_consumption_max_age", "strategy_enabled", "single_inverter", "plant_mode", "additional_ac_sources", "excluded_load_sources", "event_based_excluded_sources", "plant_meter_confirmed", "forecast_min_load_w"], "tariff": ["price_unit", "price_provider"],
                  "advanced": ["forecast_max_age", "price_max_age"],
                  "finish": ["shadow_reference_mode", "single_writer_confirmed"]}
 DEFINITIONS = {**NUMBER_DEFINITIONS, **SWITCH_DEFINITIONS}
@@ -420,6 +429,8 @@ class WizardSections:
             for key in OPTION_GROUPS.get(section, []):
                 if key in user_input:
                     draft[key] = user_input[key]
+            if section == "sources" and user_input.get("house_consumption_max_age") is None:
+                draft.pop("house_consumption_max_age", None)  # Empty field inherits source_max_age.
             if section == "sources" and self._connection.get("backend") == BACKEND_HUAWEI:
                 draft["single_inverter"] = False
                 if user_input.get("huawei_battery_temp"):

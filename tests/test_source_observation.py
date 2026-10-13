@@ -315,3 +315,23 @@ def test_event_based_power_observation_stays_consistent_with_active_contract():
     result=observe(model,NOW+timedelta(seconds=3660),m,s,o)
     assert result['native_instant_w'] is None
     assert result['balance_errors']['sensor.extra']=='invalid_value'
+
+
+def test_flat_smoothed_legacy_house_uses_its_own_age_limit():
+    def run(options):
+        m, s, o = inputs()
+        o.update(options)
+        model = SourceObservation()
+        legacy = s["sensor.legacy"]
+        for seconds in range(0, 3631, 30):
+            at = NOW + timedelta(seconds=seconds)
+            s = {key: sample(value.state, at) for key, value in s.items()}
+            s["sensor.legacy"] = legacy  # An unchanged 60-minute mean stops reporting.
+            result = observe(model, at, m, s, o)
+        return model, result
+
+    assert run({})[1]["status"] == "data_missing"
+    model, result = run({"house_consumption_max_age": 0})
+    assert result["status"] == "ready"
+    assert result["difference_w"] == 0
+    assert model.binding != run({})[0].binding

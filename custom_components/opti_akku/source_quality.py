@@ -32,3 +32,11 @@ def reported_recently(state: Any, now: datetime, max_age: float) -> bool:
     except (TypeError, ValueError, OverflowError):
         return False
     return -60 <= age <= max_age
+
+
+def house_consumption_max_age(options: Any) -> float:
+    """Smoothed house sources may stay unchanged longer; unset inherits the general limit."""
+    value = options.get("house_consumption_max_age")
+    if value is None:
+        value = options.get("source_max_age", 900)
+    return measurement_max_age(value, event_based=True)
