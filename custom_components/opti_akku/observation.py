@@ -6,7 +6,7 @@ from math import isfinite
 
 from .load_profile import LoadProfile
 from .plant import evaluate_plant
-from .source_quality import measurement_max_age, reported_recently
+from .source_quality import house_consumption_max_age, measurement_max_age, reported_recently
 
 
 def finite(value):
@@ -117,6 +117,8 @@ class SourceObservation:
         # Only the subset that changes this candidate's semantics belongs here.
         if applied_event_sources:
             binding_parts.append(sorted(applied_event_sources))
+        if options.get("house_consumption_max_age") is not None:
+            binding_parts.append({"house_consumption_max_age": options["house_consumption_max_age"]})
         binding = json.dumps(binding_parts, sort_keys=True)
         if binding != self.binding or (self.previous and now < self.previous[0]):
             self.__init__()
@@ -179,7 +181,7 @@ class SourceObservation:
         legacy_valid = (
             legacy.get("available")
             and watts(legacy) is not None
-            and reported_recently(states.get(legacy_id), now, limit)
+            and reported_recently(states.get(legacy_id), now, house_consumption_max_age(options))
         )
         difference = comparison - watts(legacy) if comparison is not None and legacy_valid else None
         reason = (

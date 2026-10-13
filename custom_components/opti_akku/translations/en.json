@@ -65,10 +65,12 @@
           "forecast_min_load_w": "Minimum forecast base load",
           "strategy_enabled": "Enable automatic strategy",
           "huawei_battery_temp": "Huawei battery temperature",
-          "source_max_age": "External measurement reporting age (seconds, 0 = HA availability)"
+          "source_max_age": "External measurement reporting age (seconds, 0 = HA availability)",
+          "house_consumption_max_age": "House consumption reporting age (seconds, empty = as above)"
         },
         "data_description": {
-          "source_max_age": "Default: 900 seconds. Applies to external power values, heat-pump power in the demand profile and resting cell spread. 0 trusts HA availability even for unchanged values. Sources and templates must report failures as unavailable; frozen values still marked available cannot be detected. An old high resting cell spread may bring balancing forward. Native battery, temperature, price and forecast checks keep their limits. Changing this restarts the consumption profile."
+          "source_max_age": "Default: 900 seconds. Applies to external power values, heat-pump power in the demand profile and resting cell spread. 0 trusts HA availability even for unchanged values. Sources and templates must report failures as unavailable; frozen values still marked available cannot be detected. An old high resting cell spread may bring balancing forward. Native battery, temperature, price and forecast checks keep their limits. Changing this restarts the consumption profile.",
+          "house_consumption_max_age": "Optional. For a smoothed house consumption source in legacy mode, for example a 60-minute average template: it may stay unchanged and then reports nothing new in HA. Suggestion for a 60-minute average: 3600. Empty uses the general age limit, 0 trusts HA availability. A frozen source still marked available is detected only after this limit. Setting or changing this restarts the consumption profile."
         }
       },
       "battery": {
@@ -440,10 +442,12 @@
           "forecast_min_load_w": "Minimum forecast base load",
           "strategy_enabled": "Enable automatic strategy",
           "huawei_battery_temp": "Huawei battery temperature",
-          "source_max_age": "External measurement reporting age (seconds, 0 = HA availability)"
+          "source_max_age": "External measurement reporting age (seconds, 0 = HA availability)",
+          "house_consumption_max_age": "House consumption reporting age (seconds, empty = as above)"
         },
         "data_description": {
-          "source_max_age": "Default: 900 seconds. Applies to external power values, heat-pump power in the demand profile and resting cell spread. 0 trusts HA availability even for unchanged values. Sources and templates must report failures as unavailable; frozen values still marked available cannot be detected. An old high resting cell spread may bring balancing forward. Native battery, temperature, price and forecast checks keep their limits. Changing this restarts the consumption profile."
+          "source_max_age": "Default: 900 seconds. Applies to external power values, heat-pump power in the demand profile and resting cell spread. 0 trusts HA availability even for unchanged values. Sources and templates must report failures as unavailable; frozen values still marked available cannot be detected. An old high resting cell spread may bring balancing forward. Native battery, temperature, price and forecast checks keep their limits. Changing this restarts the consumption profile.",
+          "house_consumption_max_age": "Optional. For a smoothed house consumption source in legacy mode, for example a 60-minute average template: it may stay unchanged and then reports nothing new in HA. Suggestion for a 60-minute average: 3600. Empty uses the general age limit, 0 trusts HA availability. A frozen source still marked available is detected only after this limit. Setting or changing this restarts the consumption profile."
         }
       },
       "battery": {

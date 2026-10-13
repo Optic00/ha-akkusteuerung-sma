@@ -24,8 +24,13 @@ class PlantConfig:
     event_based_excluded_sources: tuple[str, ...]
     external_house_source: str | None
     source_max_age: float
+    house_consumption_max_age: float | None
     forecast_min_load_w: float | None
     meter_confirmed: bool
+
+    @property
+    def external_house_max_age(self) -> float:
+        return self.source_max_age if self.house_consumption_max_age is None else self.house_consumption_max_age
 
 
 @dataclass(frozen=True)
@@ -89,6 +94,13 @@ def _config(options: Mapping[str, Any]) -> tuple[PlantConfig | None, dict[str, s
     if max_age is None or max_age < 0:
         errors["source_max_age"] = "invalid_value"
         max_age = 900.0
+    # Balance mode never reads the house source, so its limit cannot block it.
+    house_max_age = None if mode == "balance" else options.get("house_consumption_max_age")
+    if house_max_age is not None:
+        house_max_age = _finite(house_max_age)
+        if house_max_age is None or house_max_age < 0:
+            errors["house_consumption_max_age"] = "invalid_value"
+            house_max_age = None
 
     floor = None
     if mode != "legacy":
@@ -126,6 +138,7 @@ def _config(options: Mapping[str, Any]) -> tuple[PlantConfig | None, dict[str, s
         event_based_excluded_sources=event_based,
         external_house_source=external,
         source_max_age=max_age,
+        house_consumption_max_age=house_max_age,
         forecast_min_load_w=floor,
         meter_confirmed=options.get("plant_meter_confirmed") is True,
     ), errors
@@ -197,7 +210,7 @@ def evaluate_plant(
     if config.mode == "external":
         assert config.external_house_source is not None
         house, error = _ha_power(
-            config.external_house_source, ha_states, now, config.source_max_age, signed=False
+            config.external_house_source, ha_states, now, config.external_house_max_age, signed=False
         )
         if error:
             errors["house_consumption"] = error
@@ -312,7 +325,7 @@ def validate_plant_sources(
             config.external_house_source,
             ha_states,
             now,
-            config.source_max_age,
+            config.external_house_max_age,
             signed=False,
         )
         if error:
@@ -336,7 +349,7 @@ def plant_semantic_fingerprint(options: Mapping[str, Any]) -> tuple[Any, ...]:
     config, errors = _config(options)
     if config is None or errors:
         return ("invalid", tuple(sorted(errors.items())))
-    fingerprint = (
+    fingerprint: tuple[Any, ...] = (
         config.mode,
         tuple(sorted(config.additional_ac_sources)),
         tuple(sorted(config.excluded_load_sources)),
@@ -344,7 +357,9 @@ def plant_semantic_fingerprint(options: Mapping[str, Any]) -> tuple[Any, ...]:
         config.source_max_age,
         config.meter_confirmed,
     )
-    # Preserve existing learned profiles when the new option is unused.
+    # Preserve existing learned profiles when the new options are unused.
     if config.mode != "legacy" and config.event_based_excluded_sources:
-        return (*fingerprint, tuple(sorted(config.event_based_excluded_sources)))
+        fingerprint = (*fingerprint, tuple(sorted(config.event_based_excluded_sources)))
+    if config.mode != "balance" and config.house_consumption_max_age is not None:
+        fingerprint = (*fingerprint, ("house_consumption_max_age", config.house_consumption_max_age))
     return fingerprint
