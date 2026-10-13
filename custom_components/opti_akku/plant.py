@@ -94,7 +94,8 @@ def _config(options: Mapping[str, Any]) -> tuple[PlantConfig | None, dict[str, s
     if max_age is None or max_age < 0:
         errors["source_max_age"] = "invalid_value"
         max_age = 900.0
-    house_max_age = options.get("house_consumption_max_age")
+    # Balance mode never reads the house source, so its limit cannot block it.
+    house_max_age = None if mode == "balance" else options.get("house_consumption_max_age")
     if house_max_age is not None:
         house_max_age = _finite(house_max_age)
         if house_max_age is None or house_max_age < 0:

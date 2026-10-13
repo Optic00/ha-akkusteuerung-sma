@@ -561,3 +561,6 @@ def test_house_age_limit_extends_fingerprint_only_when_used():
     assert "house_consumption_max_age" in evaluate_plant(
         {}, external_options(house_consumption_max_age=-1), {}, NOW
     ).errors
+    balance = evaluate_plant(NATIVE, balance_options(house_consumption_max_age=-1), {}, NOW)
+    assert "house_consumption_max_age" not in balance.errors
+    assert balance.house_w is not None
