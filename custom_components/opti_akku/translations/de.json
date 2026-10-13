@@ -65,10 +65,12 @@
           "forecast_min_load_w": "Mindestgrundlast für die Prognose",
           "strategy_enabled": "Automatische Strategie aktivieren",
           "huawei_battery_temp": "Huawei-Batterietemperatur",
-          "source_max_age": "Altersgrenze für externe Messwerte (Sekunden, 0 = HA-Verfügbarkeit)"
+          "source_max_age": "Altersgrenze für externe Messwerte (Sekunden, 0 = HA-Verfügbarkeit)",
+          "house_consumption_max_age": "Altersgrenze Hausverbrauch (Sekunden, leer = wie oben)"
         },
         "data_description": {
-          "source_max_age": "Standard: 900 Sekunden. Gilt für externe Leistungen, Wärmepumpen-Leistung im Bedarfsprofil und Ruhe-Zellspreizung. 0 vertraut auch bei unveränderten Werten der HA-Verfügbarkeit. Quellen und Templates müssen Ausfälle als unavailable melden; eingefrorene verfügbare Werte werden nicht erkannt. Eine alte hohe Ruhe-Zellspreizung kann Balancing vorziehen. Native Batterie-, Temperatur-, Preis- und Prognoseprüfungen behalten ihre Grenzen. Eine Änderung startet das Verbrauchsprofil neu."
+          "source_max_age": "Standard: 900 Sekunden. Gilt für externe Leistungen, Wärmepumpen-Leistung im Bedarfsprofil und Ruhe-Zellspreizung. 0 vertraut auch bei unveränderten Werten der HA-Verfügbarkeit. Quellen und Templates müssen Ausfälle als unavailable melden; eingefrorene verfügbare Werte werden nicht erkannt. Eine alte hohe Ruhe-Zellspreizung kann Balancing vorziehen. Native Batterie-, Temperatur-, Preis- und Prognoseprüfungen behalten ihre Grenzen. Eine Änderung startet das Verbrauchsprofil neu.",
+          "house_consumption_max_age": "Optional. Für eine geglättete Hausverbrauchs-Quelle im Modus Legacy, etwa ein 60-Minuten-Mittelwert-Template: Sie kann unverändert bleiben und meldet dann in HA nichts Neues. Vorschlag für einen 60-Minuten-Mittelwert: 3600. Leer nutzt die allgemeine Altersgrenze, 0 vertraut der HA-Verfügbarkeit. Eine eingefrorene, weiter verfügbare Quelle fällt erst nach dieser Grenze auf. Setzen oder Ändern startet das Verbrauchsprofil neu."
         }
       },
       "battery": {
@@ -440,10 +442,12 @@
           "forecast_min_load_w": "Mindestgrundlast für die Prognose",
           "strategy_enabled": "Automatische Strategie aktivieren",
           "huawei_battery_temp": "Huawei-Batterietemperatur",
-          "source_max_age": "Altersgrenze für externe Messwerte (Sekunden, 0 = HA-Verfügbarkeit)"
+          "source_max_age": "Altersgrenze für externe Messwerte (Sekunden, 0 = HA-Verfügbarkeit)",
+          "house_consumption_max_age": "Altersgrenze Hausverbrauch (Sekunden, leer = wie oben)"
         },
         "data_description": {
-          "source_max_age": "Standard: 900 Sekunden. Gilt für externe Leistungen, Wärmepumpen-Leistung im Bedarfsprofil und Ruhe-Zellspreizung. 0 vertraut auch bei unveränderten Werten der HA-Verfügbarkeit. Quellen und Templates müssen Ausfälle als unavailable melden; eingefrorene verfügbare Werte werden nicht erkannt. Eine alte hohe Ruhe-Zellspreizung kann Balancing vorziehen. Native Batterie-, Temperatur-, Preis- und Prognoseprüfungen behalten ihre Grenzen. Eine Änderung startet das Verbrauchsprofil neu."
+          "source_max_age": "Standard: 900 Sekunden. Gilt für externe Leistungen, Wärmepumpen-Leistung im Bedarfsprofil und Ruhe-Zellspreizung. 0 vertraut auch bei unveränderten Werten der HA-Verfügbarkeit. Quellen und Templates müssen Ausfälle als unavailable melden; eingefrorene verfügbare Werte werden nicht erkannt. Eine alte hohe Ruhe-Zellspreizung kann Balancing vorziehen. Native Batterie-, Temperatur-, Preis- und Prognoseprüfungen behalten ihre Grenzen. Eine Änderung startet das Verbrauchsprofil neu.",
+          "house_consumption_max_age": "Optional. Für eine geglättete Hausverbrauchs-Quelle im Modus Legacy, etwa ein 60-Minuten-Mittelwert-Template: Sie kann unverändert bleiben und meldet dann in HA nichts Neues. Vorschlag für einen 60-Minuten-Mittelwert: 3600. Leer nutzt die allgemeine Altersgrenze, 0 vertraut der HA-Verfügbarkeit. Eine eingefrorene, weiter verfügbare Quelle fällt erst nach dieser Grenze auf. Setzen oder Ändern startet das Verbrauchsprofil neu."
         }
       },
       "battery": {

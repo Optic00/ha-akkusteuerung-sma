@@ -2197,3 +2197,35 @@ async def test_source_age_zero_survives_save_and_reopen(hass):
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "sources"})
     assert form_values(result)["source_max_age"] == 0
+
+
+async def test_house_age_limit_is_optional_and_can_be_cleared(hass):
+    """A smoothed house source gets its own limit; an empty field inherits source_max_age."""
+    entry = MockConfigEntry(domain=DOMAIN, data={**CONNECTION, "shadow_mode": True},
+                            options={"sources": {"pv_power": "sensor.pv"}, "single_inverter": True})
+    entry.add_to_hass(hass)
+
+    async def save(values):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "sources"})
+        shown = form_values(result)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], values)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "finish"})
+        result = await hass.config_entries.options.async_configure(result["flow_id"], form_values(result))
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        return shown
+
+    assert "house_consumption_max_age" not in await save({"single_inverter": True, "house_consumption_max_age": 3600})
+    assert entry.options["house_consumption_max_age"] == 3600
+    assert (await save({"single_inverter": True}))["house_consumption_max_age"] == 3600
+    assert "house_consumption_max_age" not in entry.options
+
+
+def test_house_age_limit_schema_accepts_zero_and_rejects_fractions():
+    import voluptuous as vol
+    from custom_components.opti_akku.config_flow import _sources_schema
+    schema = _sources_schema({}, "sources")
+    validator = next(v for k, v in schema.schema.items() if k.schema == "house_consumption_max_age")
+    assert validator(0) == 0 and validator(3600.0) == 3600
+    with pytest.raises(vol.Invalid):
+        validator(0.5)

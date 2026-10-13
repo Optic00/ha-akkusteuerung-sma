@@ -526,3 +526,38 @@ def test_existing_fingerprint_preserved_but_new_reporting_contract_resets_profil
     options = balance_options()
     assert plant_semantic_fingerprint(options) == ('balance', (), (), None, 900.0, True)
     assert plant_semantic_fingerprint({**options, 'source_max_age':0}) != plant_semantic_fingerprint(options)
+
+
+def external_options(**overrides):
+    return {
+        "plant_mode": "external",
+        "forecast_min_load_w": 0,
+        "sources": {"house_consumption": "sensor.house"},
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(("house_age", "age", "valid"), [(None, 901, False), (3600, 901, True), (3600, 3601, False)])
+def test_external_house_uses_optional_house_age_limit(house_age, age, valid):
+    options = external_options(**({} if house_age is None else {"house_consumption_max_age": house_age}))
+    states = {"sensor.house": state(630, age=age)}
+    result = evaluate_plant({}, options, states, NOW)
+    assert (result.house_w == 630) is valid
+    assert ("house_consumption" in validate_plant_sources(options, states, NOW)) is not valid
+
+
+def test_house_age_limit_extends_fingerprint_only_when_used():
+    assert plant_semantic_fingerprint(external_options()) == plant_semantic_fingerprint(
+        external_options(house_consumption_max_age=None)
+    )
+    assert plant_semantic_fingerprint(external_options()) != plant_semantic_fingerprint(
+        external_options(house_consumption_max_age=3600)
+    )
+    assert plant_semantic_fingerprint({}) != plant_semantic_fingerprint({"house_consumption_max_age": 3600})
+    # Balance mode never reads the house source.
+    assert plant_semantic_fingerprint(balance_options()) == plant_semantic_fingerprint(
+        balance_options(house_consumption_max_age=3600)
+    )
+    assert "house_consumption_max_age" in evaluate_plant(
+        {}, external_options(house_consumption_max_age=-1), {}, NOW
+    ).errors

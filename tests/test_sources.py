@@ -416,3 +416,39 @@ def test_old_resting_value_respects_balancing_enable_threshold_and_cooldown(
     result = StrategyEngine().evaluate(values, {**solar_attrs(NOW), **attrs}, NOW)
     assert bool(errors) is not available
     assert result.states["sensor.opti_balancing_watchdog"] == expected
+
+
+HOUSE = {"sources": {"house_consumption": "sensor.house_mean", "pv_generation": "sensor.pv"}}
+
+
+@pytest.mark.parametrize(("house_age", "age", "valid"), [
+    (None, 901, False),  # Unset keeps the general limit.
+    (3600, 901, True),  # A flat 60-minute mean stops reporting but stays valid.
+    (3600, 3601, False),
+    (0, 10**6, True),  # 0 trusts HA availability like source_max_age.
+])
+def test_house_consumption_has_its_own_optional_age_limit(house_age, age, valid):
+    options = {**HOUSE, **({} if house_age is None else {"house_consumption_max_age": house_age})}
+    states, _, errors = build_inputs({}, options, {"sensor.house_mean": state(630, age=age), "sensor.pv": state(0)}, NOW)
+    assert (states["sensor.opti_house_consumption_w"] == 630) is valid
+    assert ("house_consumption" in errors) is not valid
+
+
+def test_house_age_limit_does_not_extend_other_power_sources():
+    options = {**HOUSE, "house_consumption_max_age": 3600}
+    _, _, errors = build_inputs({}, options, {"sensor.house_mean": state(630, age=901), "sensor.pv": state(500, age=901)}, NOW)
+    assert errors == {"pv_generation": "missing_or_stale"}
+
+
+@pytest.mark.parametrize("house_age", [-1, True, "x", float("inf"), float("nan")])
+def test_invalid_house_age_limit_fails_closed(house_age):
+    options = {**HOUSE, "house_consumption_max_age": house_age}
+    _, _, errors = build_inputs({}, options, {"sensor.house_mean": state(630), "sensor.pv": state(0)}, NOW)
+    assert errors == {"house_consumption": "missing_or_stale"}
+
+
+@pytest.mark.parametrize("sample", [state("unknown"), state("unavailable")])
+def test_house_age_limit_never_accepts_unavailable_sources(sample):
+    options = {**HOUSE, "house_consumption_max_age": 0}
+    _, _, errors = build_inputs({}, options, {"sensor.house_mean": sample, "sensor.pv": state(0)}, NOW)
+    assert errors == {"house_consumption": "invalid_value"}

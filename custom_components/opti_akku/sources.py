@@ -14,7 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import SOURCE_DEFINITIONS
 from .plant import evaluate_plant
-from .source_quality import measurement_max_age, reported_recently
+from .source_quality import house_consumption_max_age, measurement_max_age, reported_recently
 
 if TYPE_CHECKING:
     from .tibber_prices import TibberPriceSnapshot
@@ -148,7 +148,9 @@ def build_inputs(
         source = ha_states.get(entity_id)
         states[canonical] = "unavailable"
         max_age = measurement_max_age(options.get("source_max_age", 900), event_based=family in {"power", "voltage_spread"})
-        if family == "energy":
+        if key == "house_consumption":
+            max_age = house_consumption_max_age(options)
+        elif family == "energy":
             max_age = options.get("forecast_max_age", 21600)
         elif family == "price":
             max_age = options.get("price_max_age", 7200)
