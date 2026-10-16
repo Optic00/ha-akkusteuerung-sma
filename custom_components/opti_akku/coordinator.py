@@ -976,9 +976,7 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if mode != self._violation_mode:
             self._violation_since = None
         self._violation_mode = mode
-        # A phased renewal of the same confirmed mode keeps the open incident.
-        if not (self._command_pending and applied):
-            self._violation_since = (self._violation_since or monotonic_now) if violation else None
+        self._violation_since = (self._violation_since or monotonic_now) if violation else None
         if self._violation_since is None:
             self._violation_renewals = 0
         persistent_violation = self._violation_since is not None and monotonic_now - self._violation_since >= 30
@@ -991,7 +989,8 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if (not self.shadow_mode and self.write_enabled and self._online and connection["write_ready"] and self._identity.get("serial_number") and not self._stopping
                 and mode in self.supported_modes
                 and (due or signature != self._last_signature or renew)):
-            if persistent_violation:
+            # Continuing a phased command is not another renewal.
+            if renew and not self._command_pending:
                 self._violation_renewals += 1
             try:
                 def current() -> bool:

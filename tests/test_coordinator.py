@@ -666,13 +666,19 @@ async def test_pending_renewal_keeps_open_block_incident_and_budget(coordinator)
             clock[0] += 15
             result = await coordinator._async_update_data()
             states.append(result["states"]["binary_sensor.opti_block_violation"])
+        assert coordinator._violation_renewals == 2
         coordinator.device.async_apply.side_effect = None
+        while clock[0] < 600:
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+            states.append(result["states"]["binary_sensor.opti_block_violation"])
+        assert coordinator._violation_renewals == 3
+        assert "trotz 3 Erneuerungen" in result["last_error"]
+        coordinator.device.async_read.return_value["sensor.opti_battery_power_w"] = 0
         clock[0] += 15
-        result = await coordinator._async_update_data()
+        cleared = await coordinator._async_update_data()
     assert set(states) == {"on"}
-    assert result["states"]["binary_sensor.opti_block_violation"] == "on"
-    assert coordinator._violation_renewals >= 3
-    assert "trotz 3 Erneuerungen" in result["last_error"]
+    assert cleared["states"]["binary_sensor.opti_block_violation"] == "off"
 
 
 async def test_block_violation_requires_confirmed_command(coordinator):
