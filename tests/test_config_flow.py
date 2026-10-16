@@ -116,6 +116,22 @@ async def test_options_battery_step_keeps_existing_ac_limit(hass):
     assert result["step_id"] == "init"
 
 
+async def test_manual_setpoints_accept_single_watt_steps(hass):
+    """Manual charge/discharge setpoints can be set in single-watt steps (#147)."""
+    from custom_components.opti_akku.config_flow import DEFINITIONS
+    from custom_components.opti_akku.coordinator import validate_setting
+    entry = MockConfigEntry(domain=DOMAIN, data=CONNECTION, options={"single_inverter": True})
+    entry.add_to_hass(hass)
+    settings = {key: definition["default"] for key, definition in DEFINITIONS.items()}
+    entry.runtime_data = SimpleNamespace(settings=settings, _settings_revision=None, _identity={})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await configure_options(hass, result["flow_id"], {"next_step_id": "advanced"})
+    selectors = {marker.schema: selector for marker, selector in result["data_schema"].schema.items()}
+    for name in ("akkusteuerung_ladestaerke_soll", "akkusteuerung_entladestaerke_soll"):
+        assert selectors[name].config["step"] == 1
+        assert validate_setting(f"input_number.{name}", 1234, settings) == 1234
+
+
 async def test_huawei_battery_step_has_no_model_suggestion(hass):
     from custom_components.opti_akku.config_flow import OptiAkkuOptionsFlow
     entry = MockConfigEntry(domain=DOMAIN, data={"backend": "huawei_solar", "huawei_device_id": "d"})
