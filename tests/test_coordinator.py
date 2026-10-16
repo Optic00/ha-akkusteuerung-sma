@@ -929,6 +929,24 @@ async def test_unproven_control_release_is_visible(coordinator, entry):
     assert sensor.native_value == "not_confirmed"
 
 
+async def test_connection_status_records_only_raw_inverter_status(coordinator, entry):
+    """Night readiness incidents need the raw device code in history (#103)."""
+    from homeassistant.const import MATCH_ALL
+    from custom_components.opti_akku.sensor import async_setup_entry
+
+    coordinator.async_set_updated_data(await coordinator._async_update_data())
+    entry.runtime_data = coordinator
+    added = []
+    await async_setup_entry(coordinator.hass, entry, lambda entities: added.extend(entities))
+    sensor = next(entity for entity in added if getattr(entity, "_data_key", None) == "connection_status")
+
+    assert sensor.native_value == "ready"
+    assert sensor.extra_state_attributes["inverter_status"] == 235
+    assert "inverter_status" not in sensor._unrecorded_attributes
+    assert MATCH_ALL not in sensor._unrecorded_attributes
+    assert {"write_ready", "elapsed_seconds", "good_reads"} <= sensor._unrecorded_attributes
+
+
 async def test_command_evidence_sensor_is_additive_and_unrecorded(coordinator, entry):
     from homeassistant.const import MATCH_ALL
     from custom_components.opti_akku.sensor import (
@@ -2195,10 +2213,13 @@ async def test_sma_reconnect_gate_does_not_replay_old_command(coordinator):
     coordinator.device.async_probe.side_effect = OSError("temporary")
     offline = await coordinator._async_update_data()
     assert offline["connection_status"]["status"] == "offline"
+    assert offline["connection_status"]["inverter_status"] is None
     coordinator.device.async_probe.side_effect = None
     coordinator.device.async_read.return_value["sensor.opti_inverter_status"] = 16777213
     waiting = await coordinator._async_update_data()
     assert waiting["command_confirmation"] == "waiting_ready"
+    assert waiting["connection_status"]["status"] == "not_ready"
+    assert waiting["connection_status"]["inverter_status"] == 16777213
     coordinator.device.async_apply.assert_not_awaited()
     coordinator.device.async_read.return_value["sensor.opti_inverter_status"] = 235
     first = await coordinator._async_update_data()
@@ -2206,6 +2227,7 @@ async def test_sma_reconnect_gate_does_not_replay_old_command(coordinator):
     coordinator.device.async_apply.assert_not_awaited()
     second = await coordinator._async_update_data()
     assert second["connection_status"]["status"] == "ready"
+    assert second["connection_status"]["inverter_status"] == 235
     coordinator.device.async_apply.assert_awaited_once()
     assert second["operating_report"]["write_failures"] == 0
 

@@ -680,13 +680,15 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._async_finish_huawei_pause()
         now = dt_util.utcnow()
         monotonic_now = time.monotonic()
-        connection = {"status": "ready" if self._online else "offline", "write_ready":self._online}
+        connection: dict[str, Any] = {"status": "ready" if self._online else "offline", "write_ready":self._online}
         if self.entry.data.get("backend") != "huawei_solar":
             allowed = getattr(self.device, "allowed_statuses", (235, 2119))
             if not isinstance(allowed, (tuple, list, set, frozenset)):
                 allowed = (235, 2119)
-            connection = self._recovery.update(self._online,
-                finite(self._measurements.get("sensor.opti_inverter_status")), monotonic_now, allowed)
+            raw_status = finite(self._measurements.get("sensor.opti_inverter_status"))
+            # Raw device code explains not_ready incidents, e.g. night standby.
+            connection = {**self._recovery.update(self._online, raw_status, monotonic_now, allowed),
+                          "inverter_status": int(raw_status) if raw_status is not None else None}
         self._write_monitor_since = (self._write_monitor_since or monotonic_now) if self.write_enabled and not self.shadow_mode else None
         captured_options = dict(self.entry.options)
         score_binding = _score_load_binding(self._load_source_fingerprint, captured_options)
