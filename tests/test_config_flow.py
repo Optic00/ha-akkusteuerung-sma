@@ -117,7 +117,7 @@ async def test_options_battery_step_keeps_existing_ac_limit(hass):
 
 
 async def test_manual_setpoints_accept_single_watt_steps(hass):
-    """Manual charge/discharge setpoints are written in whole watts (#147)."""
+    """Manual charge/discharge setpoints can be set in single-watt steps (#147)."""
     from custom_components.opti_akku.config_flow import DEFINITIONS
     from custom_components.opti_akku.coordinator import validate_setting
     entry = MockConfigEntry(domain=DOMAIN, data=CONNECTION, options={"single_inverter": True})
