@@ -617,13 +617,85 @@ async def test_block_violation_uses_monotonic_time_across_utc_rollback(coordinat
     with patch("custom_components.opti_akku.coordinator.time.monotonic",
                side_effect=lambda: clock[0]):
         await coordinator._async_update_data()
-        clock[0] += 1
+        clock[0] += 11
         await coordinator._async_update_data()
         clock[0] += 30
         with patch("custom_components.opti_akku.coordinator.dt_util.utcnow",
                    return_value=dt_util.utcnow() - timedelta(hours=1)):
             result = await coordinator._async_update_data()
     assert result["states"]["binary_sensor.opti_block_violation"] == "on"
+
+
+async def test_block_violation_renewals_are_bounded_per_incident(coordinator):
+    """A device that ignores the block gets three renewals, then only the alarm (#40)."""
+    clock = [100.0]
+    coordinator.write_enabled = True
+    coordinator.device.async_read.return_value["sensor.opti_battery_power_w"] = -500
+    with patch("custom_components.opti_akku.coordinator.time.monotonic",
+               side_effect=lambda: clock[0]):
+        result = await coordinator._async_update_data()
+        mode = coordinator._last_signature[0]
+        while clock[0] < 400:
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+    calls = coordinator.device.async_apply.await_args_list
+    assert all(call.args[0] == mode for call in calls)
+    # Initial write, three renewals (145, 175, 205), one regular renewal at 325.
+    assert len(calls) == 5
+    assert result["states"]["binary_sensor.opti_block_violation"] == "on"
+    assert "trotz 3 Erneuerungen" in result["last_error"]
+
+
+async def test_pending_renewal_keeps_open_block_incident_and_budget(coordinator):
+    """A phased renewal must neither clear the alarm nor reset the renewal budget."""
+    from custom_components.opti_akku.device import PendingCommandError
+
+    clock = [100.0]
+    coordinator.write_enabled = True
+    coordinator.device.async_read.return_value["sensor.opti_battery_power_w"] = -500
+    with patch("custom_components.opti_akku.coordinator.time.monotonic",
+               side_effect=lambda: clock[0]):
+        await coordinator._async_update_data()
+        for _ in range(3):
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+        assert result["states"]["binary_sensor.opti_block_violation"] == "on"
+        coordinator.device.async_apply.side_effect = PendingCommandError("pending")
+        states = []
+        while clock[0] < 400:
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+            states.append(result["states"]["binary_sensor.opti_block_violation"])
+        assert coordinator._violation_renewals == 2
+        coordinator.device.async_apply.side_effect = None
+        while clock[0] < 600:
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+            states.append(result["states"]["binary_sensor.opti_block_violation"])
+        assert coordinator._violation_renewals == 3
+        assert "trotz 3 Erneuerungen" in result["last_error"]
+        coordinator.device.async_read.return_value["sensor.opti_battery_power_w"] = 0
+        clock[0] += 15
+        cleared = await coordinator._async_update_data()
+    assert set(states) == {"on"}
+    assert cleared["states"]["binary_sensor.opti_block_violation"] == "off"
+
+
+async def test_block_violation_requires_confirmed_command(coordinator):
+    """Without a confirmed write of the current mode, power says nothing about it."""
+    clock = [100.0]
+    coordinator.write_enabled = True
+    coordinator.device.async_read.return_value["sensor.opti_battery_power_w"] = -500
+    with patch("custom_components.opti_akku.coordinator.time.monotonic",
+               side_effect=lambda: clock[0]):
+        await coordinator._async_update_data()
+        coordinator.device.async_apply.side_effect = OSError("write failed")
+        clock[0] += 125
+        await coordinator._async_update_data()
+        for _ in range(4):
+            clock[0] += 15
+            result = await coordinator._async_update_data()
+    assert result["states"]["binary_sensor.opti_block_violation"] == "off"
 
 
 async def test_write_read_guard_uses_monotonic_elapsed_time(coordinator):

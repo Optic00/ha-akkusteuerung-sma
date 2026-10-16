@@ -256,6 +256,14 @@ gleichgesetzt werden dürfen:
 - **Physische Wirkung** bleibt unbestätigt. Eine gemessene Akkuleistung oder
   das Ausbleiben einer Sperrverletzung beweist keine exakte Sollwertübernahme.
 
+Eine Sperrverletzung liegt vor, wenn der Akku in **Pause**, **nur Laden**,
+**Netzladen** oder **nur Entladen** länger als 30 Sekunden mit mehr als 200 W in
+die gesperrte Richtung arbeitet. Bewertet wird nur ein bestätigt geschriebener
+Befehl für genau diesen Modus, frühestens 10 Sekunden nach dem Moduswechsel.
+Opti Akku erneuert die Sollwerte danach höchstens dreimal im Abstand von
+mindestens 30 Sekunden. Hält die Verletzung an, bleibt die Meldung aktiv, und
+es gilt wieder der reguläre Erneuerungsabstand von 120 Sekunden.
+
 Der ältere Sensor **Befehlsbestätigung** bleibt aus Kompatibilitätsgründen
 erhalten. Sein Zustand **Kein offener Befehl** sagt nur, dass aktuell keine
 Transaktion aussteht.
