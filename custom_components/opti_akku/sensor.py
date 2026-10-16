@@ -41,6 +41,8 @@ async def async_setup_entry(
     def diagnostic_entity(key: str) -> SensorEntity:
         if key == "arbitrage_estimate":
             return OptiAkkuArbitrageSensor(entry, key)
+        if key == "connection_status":
+            return OptiAkkuConnectionSensor(entry, key)
         if key in ("command_evidence", "reserve_plan", "operating_report", "demand_forecast", "source_observation", "connection_status", "ev_preparation"):
             return OptiAkkuReportSensor(entry, key)
         return OptiAkkuDiagnosticSensor(entry, key)
@@ -198,6 +200,12 @@ class OptiAkkuReportSensor(OptiAkkuDiagnosticSensor):
     """Keep detailed live attributes out of Recorder."""
 
     _unrecorded_attributes = frozenset({MATCH_ALL})
+
+
+class OptiAkkuConnectionSensor(OptiAkkuDiagnosticSensor):
+    """Record only the raw device code; counters change on every poll."""
+
+    _unrecorded_attributes = frozenset({"write_ready", "elapsed_seconds", "good_reads"})
 
 
 class OptiAkkuArbitrageSensor(OptiAkkuReportSensor):
