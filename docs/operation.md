@@ -336,6 +336,16 @@ Wechselrichter-Firmware. Ein realer Kommunikationsabbruch während eines
 Schreibvorgangs und die spätere Rückkehr zur Eigenregelung bleiben deshalb
 getrennte Hardware-Abnahmen.
 
+Bei SMA zeigt der Diagnosesensor **Wechselrichter-Bereitschaft** im Attribut
+`inverter_status` den zuletzt gelesenen Betriebszustand aus Register 33003.
+Nur die konfigurierten Betriebscodes (Standard 235 und 2119) gelten als
+schreibbereit; jeder andere Wert ergibt `not_ready`. Fehlt der Wert oder ist
+er ungültig, steht der Sensor auf `offline` und das Attribut ist leer. Nach
+einer Störung meldet der erste gültige Betriebscode `recovering`, erst der
+zweite `ready`. Das Attribut wird im
+Verlauf gespeichert, damit sich eine nächtliche Bereitschaftsmeldung
+nachträglich einem Gerätezustand zuordnen lässt.
+
 Beim Ausschalten versucht die Integration, den Wechselrichter in Pause zu
 setzen. Das ist ein Best-Effort-Vorgang. Hardware-, Netzwerk- oder
 Protokollfehler können den Stopp verhindern. Auch eine bestätigte Pause ist
