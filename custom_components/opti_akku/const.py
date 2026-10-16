@@ -9,6 +9,10 @@ DEFAULT_PORT = 502
 DEFAULT_UNIT_ID = 3
 UPDATE_SECONDS = 15
 RECONCILE_SECONDS = 120
+# Block watchdog: device ramp before judging, then bounded renewals per incident.
+VIOLATION_SETTLE_SECONDS = 10
+VIOLATION_RENEW_SECONDS = 30
+VIOLATION_MAX_RENEWALS = 3
 CONF_SOURCES = "sources"
 CONF_SETTINGS = "settings"
 NO_RELOAD_OPTION_KEYS = frozenset(

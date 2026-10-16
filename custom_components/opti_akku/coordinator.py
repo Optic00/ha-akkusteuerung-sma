@@ -41,6 +41,9 @@ from .const import (
     RECONCILE_SECONDS,
     SOURCE_DEFINITIONS,
     UPDATE_SECONDS,
+    VIOLATION_MAX_RENEWALS,
+    VIOLATION_RENEW_SECONDS,
+    VIOLATION_SETTLE_SECONDS,
 )
 from .definitions import NUMBER_DEFINITIONS, SWITCH_DEFINITIONS
 from .sources import build_inputs, finite
@@ -233,6 +236,8 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._measurements: dict = {}
         self._violation_since: float | None = None
         self._violation_mode: str | None = None
+        self._violation_renewals = 0
+        self._applied_mode_since: float | None = None
         self._update_lock = asyncio.Lock()
         # Held only by owned journal jobs, never by a cancellable caller: an
         # executor thread still writing always keeps the journal serialized.
@@ -960,21 +965,32 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 charge_power_limits.append("Auto-Vorbereitung: nur PV-Überschuss vor dem Akku")
         signature = (mode, *sorted(params.items()))
         battery = finite(result.states.get("sensor.opti_battery_power_w"))
-        violation = (not self.shadow_mode and self.write_enabled and battery is not None and self._last_apply is not None
+        # Judge only the confirmed command for this mode, after the device ramp.
+        applied = (self._last_signature is not None and self._last_signature[0] == mode
+                   and self._applied_mode_since is not None
+                   and monotonic_now - self._applied_mode_since >= VIOLATION_SETTLE_SECONDS)
+        violation = (not self.shadow_mode and self.write_enabled and battery is not None and applied
                      and ((mode in ("Akku Pause", "Akku nur Laden", "Akku Netzladen") and battery < -200)
                           or (mode in ("Akku Pause", "Akku nur Entladen") and battery > 200)))
         if mode != self._violation_mode:
             self._violation_since = None
         self._violation_mode = mode
         self._violation_since = (self._violation_since or monotonic_now) if violation else None
+        if self._violation_since is None:
+            self._violation_renewals = 0
         persistent_violation = self._violation_since is not None and monotonic_now - self._violation_since >= 30
+        renew = (persistent_violation and self._violation_renewals < VIOLATION_MAX_RENEWALS
+                 and (self._last_apply is None or monotonic_now - self._last_apply >= VIOLATION_RENEW_SECONDS))
         command_result = "not_attempted"
         write_failed = False
         last_write_before_command = getattr(self.device, "last_write", None)
         due = self._last_apply is None or monotonic_now - self._last_apply >= RECONCILE_SECONDS
         if (not self.shadow_mode and self.write_enabled and self._online and connection["write_ready"] and self._identity.get("serial_number") and not self._stopping
                 and mode in self.supported_modes
-                and (due or signature != self._last_signature or persistent_violation)):
+                and (due or signature != self._last_signature or renew)):
+            if persistent_violation:
+                self._violation_renewals += 1
+            previous_signature = self._last_signature
             try:
                 def current() -> bool:
                     if not self.write_enabled or self._stopping or self._revision != revision:
@@ -1029,6 +1045,8 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._command_pending = False
                 self._last_signature = signature
                 self._last_apply = time.monotonic()
+                if previous_signature is None or previous_signature[0] != mode:
+                    self._applied_mode_since = self._last_apply
                 self._last_error = "Sperrverletzung beobachtet; Sollwerte erneuert" if persistent_violation else None
             except PendingCommandError as err:
                 command_result = "safe_phase_confirmed" if err.confirmed else "pending"
@@ -1051,6 +1069,8 @@ class OptiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._command_pending = False
                 self._last_signature = None
                 self._last_error = f"Schreibvorgang nicht bestätigt: {type(err).__name__}"
+        if persistent_violation and command_result == "not_attempted" and self._violation_renewals >= VIOLATION_MAX_RENEWALS:
+            self._last_error = f"Sperrverletzung hält trotz {VIOLATION_MAX_RENEWALS} Erneuerungen an"
         result.states["binary_sensor.opti_connection"] = "on" if self._online else "off"
         result.states["binary_sensor.opti_block_violation"] = "on" if persistent_violation else "off"
         result.states["binary_sensor.opti_write_stalled"] = "on" if not self.shadow_mode and self.write_enabled and self._write_monitor_since is not None and monotonic_now - (self._last_apply or self._write_monitor_since) > 240 else "off"
